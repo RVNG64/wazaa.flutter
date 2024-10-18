@@ -1,0 +1,44 @@
+// android/build.gradle
+
+buildscript {
+    repositories {
+        google()
+        mavenCentral() 
+    }
+
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.2.0' // Mise à jour du plugin Gradle pour Android
+        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.8.22'
+        classpath 'com.google.gms:google-services:4.4.2'
+    }
+}
+
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+        maven {
+            url 'https://api.mapbox.com/downloads/v2/releases/maven'
+            authentication {
+                basic(BasicAuthentication)
+            }
+            credentials {
+                username = 'mapbox'
+                password = project.hasProperty('SDK_REGISTRY_TOKEN') ? project.SDK_REGISTRY_TOKEN : ""
+            }
+        }
+        maven { url 'https://plugins.gradle.org/m2/' }
+    }
+}
+
+rootProject.buildDir = "../build"
+subprojects {
+    project.buildDir = "${rootProject.buildDir}/${project.name}"
+}
+subprojects {
+    project.evaluationDependsOn(":app")
+}
+
+tasks.register("clean", Delete) {
+    delete rootProject.buildDir
+}
