@@ -89,7 +89,7 @@ class _InscriptionPageState extends State<InscriptionPage> {
       }
 
       // Si une photo est sélectionnée, on tente de l'uploader
-      final uri = Uri.parse('http://10.0.2.2:3000/auth/update-profile-picture/$firebaseId');
+      final uri = Uri.parse('https://wazaapp-backend-e95231584d01.herokuapp.com/auth/update-profile-picture/$firebaseId');
       var request = http.MultipartRequest('PATCH', uri);
 
       var mimeType = lookupMimeType(_selectedImage!.path);

@@ -14,7 +14,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  final EventService _eventService = EventService('http://10.0.2.2:3000'); // URL backend
+  final EventService _eventService = EventService('https://wazaapp-backend-e95231584d01.herokuapp.com'); // URL backend
 
   @override
   void initState() {

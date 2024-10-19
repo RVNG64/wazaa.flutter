@@ -35,6 +35,7 @@ class _MapWithMarkersPageState extends State<MapWithMarkersPage> with TickerProv
   late EventNotifier eventNotifier;
 
   final MapController _mapController = MapController();
+  final Completer<void> _mapReadyCompleter = Completer<void>();
 
   // Ajout des variables pour stocker les dates par défaut
   late String defaultStartDate;
@@ -44,6 +45,7 @@ class _MapWithMarkersPageState extends State<MapWithMarkersPage> with TickerProv
   
   // Utilisation de ValueNotifier pour réduire les rendus inutiles
   ValueNotifier<List<Marker>> _markers = ValueNotifier<List<Marker>>([]);
+  ValueNotifier<List<POI>> visibleEvents = ValueNotifier<List<POI>>([]);
   ValueNotifier<List<POI>> filteredEvents = ValueNotifier<List<POI>>([]);
     // Variable pour gérer l'état du texte affiché du toggle (résultats ou filtres de dates)
   ValueNotifier<bool> showResults = ValueNotifier<bool>(true);
@@ -179,6 +181,11 @@ class _MapWithMarkersPageState extends State<MapWithMarkersPage> with TickerProv
       // Démarrer le timer d'alterner après que les événements soient chargés
       _startToggleTimer();
     });
+
+    // Écouter les changements de filteredEvents
+    filteredEvents.addListener(() {
+      _updateVisibleEvents();
+    });
   }
 
   // Annule le timer lors de la destruction du widget
@@ -194,14 +201,6 @@ class _MapWithMarkersPageState extends State<MapWithMarkersPage> with TickerProv
       showResults.value = !showResults.value;
     });
   }
-
-  /* Méthode de mise à jour après déplacement de la carte
-  void _updateMarkersAfterMapMove() {
-    setState(() {
-      // Rafraîchir simplement les popups après déplacement, sans recharger les marqueurs
-      _popupController.hideAllPopups();
-    });
-  } */
 
   // Fonction debounce pour retarder les appels API
   void _debouncedUpdateMarkers() {
@@ -339,11 +338,9 @@ class _MapWithMarkersPageState extends State<MapWithMarkersPage> with TickerProv
 
   // Mise à jour des marqueurs en fonction de la position de la carte
   Future<void> _updateMarkers() async {
-    final eventNotifier = Provider.of<EventNotifier>(context, listen: false);
-
-    // Charge tous les événements sans filtrer par bounds
-    if (eventNotifier.events.isNotEmpty) {
-      _loadMarkersFromEvents(eventNotifier.events);
+    // Utiliser les événements filtrés par date et catégorie
+    if (filteredEvents.value.isNotEmpty) {
+      _loadMarkersFromEvents(filteredEvents.value);
     }
   }
 
@@ -458,10 +455,38 @@ class _MapWithMarkersPageState extends State<MapWithMarkersPage> with TickerProv
     filteredEvents.value = sponsoredEvents + nonSponsoredEvents;
   }
 
+  // Méthode pour mettre à jour les événements visibles sur la carte
+  void _updateVisibleEvents() async {
+    await _mapReadyCompleter.future; // Attendre que la carte soit prête
+    final bounds = _mapController.camera.visibleBounds;
+    if (bounds != null) {
+      List<POI> eventsInView = filteredEvents.value.where((event) {
+        if (event.location != null) {
+          double lat = event.location!.latitude!;
+          double lng = event.location!.longitude!;
+          return bounds.contains(LatLng(lat, lng));
+        }
+        return false;
+      }).toList();
+
+      visibleEvents.value = eventsInView;
+    } else {
+      visibleEvents.value = [];
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: () async {
+        // Si la vue liste est visible, la fermer et ne pas quitter l'application
+        if (_isListViewVisible) {
+          setState(() {
+            _isListViewVisible = false;  // Masque la vue liste
+          });
+          return false;  // Ne pas quitter l'application
+        }
+
         bool shouldExit = await showDialog(
           context: context,
           builder: (context) {
@@ -583,11 +608,16 @@ class _MapWithMarkersPageState extends State<MapWithMarkersPage> with TickerProv
                         currentZoom = position.zoom;  // Met à jour le zoom actuel
                       });
                     }
+                    _updateMarkers(); 
+                    _updateVisibleEvents(); 
                   },
                   onTap: (_, __) {
                     setState(() {
                       _selectedEvent = null;  // Fermer la popup lorsqu'on clique en dehors
                     });
+                  },
+                  onMapReady: () {
+                    _mapReadyCompleter.complete();
                   },
                 ),
                 children: [
@@ -651,7 +681,7 @@ class _MapWithMarkersPageState extends State<MapWithMarkersPage> with TickerProv
                 // Header ou barre de navigation ou tout autre contenu de votre choix
                 Container(
                   color: Colors.white,
-                  padding: const EdgeInsets.only(left: 20, right: 20, top: 35, bottom: 0),
+                  padding: const EdgeInsets.only(left: 20, right: 20, top: 40, bottom: 0),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -671,9 +701,15 @@ class _MapWithMarkersPageState extends State<MapWithMarkersPage> with TickerProv
                           ],
                         ),
                         child: IconButton(
-                          iconSize: 20,
-                          icon: const Icon(Icons.calendar_today, color: Colors.black),
-                          onPressed: _showCustomDatePicker, // Afficher le sélecteur de date
+                          iconSize: 23,
+                          icon: const Icon(Icons.question_answer, color: Colors.black),
+                          tooltip: 'Aide / FAQ',
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => FAQPage()),
+                            );
+                          },
                         ),
                       ),
                       const Text(
@@ -889,83 +925,82 @@ class _MapWithMarkersPageState extends State<MapWithMarkersPage> with TickerProv
             ),
 
             // Bouton flottant pour afficher le nombre de résultats ou la plage de dates
-            Positioned(
-              bottom: 90, // Positionnement au-dessus de la barre de navigation
-              left: 0,
-              right: 0,
-              child: Center(  // Utilisation de Center pour garantir le centrage horizontal
-                child: GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _isListViewVisible = !_isListViewVisible;
-                    });
-                  },
-                  child: Container(
-                    width: MediaQuery.of(context).size.width * 0.33, // Largeur du bouton
-                    decoration: BoxDecoration(
-                      color: Colors.white, // Fond blanc
-                      borderRadius: BorderRadius.circular(50), // Coins arrondis
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.2), // Ombre légère
-                          blurRadius: 6,
-                          offset: Offset(0, 3), // Décalage de l'ombre pour effet flottant
-                        ),
-                      ],
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8), // Ajuster le padding pour un bon espacement
-                      child: ValueListenableBuilder<bool>(
-                        valueListenable: showResults, // Utilisation du ValueNotifier pour alterner entre les vues
-                        builder: (context, showResultsValue, child) {
-                          return Center(
-                            child: AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 500), // Durée du fondu
-                              switchInCurve: Curves.easeIn,  // Courbe d'animation à l'apparition
-                              switchOutCurve: Curves.easeOut, // Courbe d'animation à la disparition
-                              transitionBuilder: (Widget child, Animation<double> animation) {
-                                return FadeTransition(
-                                  opacity: animation,  // Utiliser une transition de fondu
-                                  child: child,
-                                );
-                              },
-                              child: showResultsValue
-                                  ? ValueListenableBuilder<List<POI>>(
-                                      key: ValueKey('results'),  // Clé pour gérer le switch
-                                      valueListenable: filteredEvents, // Utilisation du notifier pour mettre à jour le bouton
-                                      builder: (context, events, child) {
-                                        return Text(
-                                          "${events.length} Résultats", // Affiche le nombre d'événements filtrés
-                                          style: const TextStyle(
-                                            color: Colors.black,
-                                            fontSize: 12,
-                                            fontFamily: "Poppins",
-                                            fontWeight: FontWeight.w500, // Pour un effet un peu plus gras
-                                          ),
-                                        );
-                                      },
-                                    )
-                                  : Text(
-                                      key: ValueKey('dates'),  // Clé pour gérer le switch
-                                      selectedDateRange != null
-                                          ? "Du ${DateFormat('dd/MM').format(selectedDateRange!.start)} au ${DateFormat('dd/MM').format(selectedDateRange!.end)}"
-                                          : "Du ${DateFormat('dd/MM').format(DateTime.now())} au ${DateFormat('dd/MM').format(DateTime.now().add(Duration(days: 6)))}",
-                                      style: const TextStyle(
-                                        color: Colors.black,
-                                        fontSize: 12,
-                                        fontFamily: "Poppins",
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                            ),
-                          );
-                        },
+          Positioned(
+            bottom: 90, // Positionnement au-dessus de la barre de navigation
+            left: 0,
+            right: 0,
+            child: Center(
+              child: GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _isListViewVisible = !_isListViewVisible;
+                  });
+                },
+                child: Container(
+                  // Adapte la largeur à l'espace disponible
+                  width: MediaQuery.of(context).size.width * 0.35, // Largeur du bouton
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(50),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        blurRadius: 6,
+                        offset: Offset(0, 3),
                       ),
+                    ],
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                    child: ValueListenableBuilder<bool>(
+                      valueListenable: showResults,
+                      builder: (context, showResultsValue, child) {
+                        return Center(
+                          child: AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 500),
+                            transitionBuilder: (Widget child, Animation<double> animation) {
+                              return FadeTransition(opacity: animation, child: child);
+                            },
+                            child: showResultsValue
+                                ? ValueListenableBuilder<List<POI>>(
+                                    key: ValueKey('results'),
+                                    valueListenable: visibleEvents,
+                                    builder: (context, events, child) {
+                                      return Text(
+                                        "${events.length} Résultats",
+                                        style: const TextStyle(
+                                          color: Colors.black,
+                                          fontSize: 12,
+                                          fontFamily: "Poppins",
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      );
+                                    },
+                                  )
+                                : Wrap( // Utilise Wrap pour éviter les débordements
+                                    key: ValueKey('dates'),
+                                    alignment: WrapAlignment.center, // Centrer les éléments
+                                    children: [
+                                      Text(
+                                        "Afficher la liste",
+                                        style: const TextStyle(
+                                          color: Colors.black,
+                                          fontSize: 12,
+                                          fontFamily: "Poppins",
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                          ),
+                        );
+                      },
                     ),
                   ),
                 ),
               ),
             ),
+          ),
 
             // Bouton FAQ flottant
             Positioned(
@@ -976,16 +1011,10 @@ class _MapWithMarkersPageState extends State<MapWithMarkersPage> with TickerProv
                 height: 50, // Hauteur personnalisée
                 child: FloatingActionButton(
                   backgroundColor: Colors.white,
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => FAQPage()),
-                    );
-                  },
-                  child: const Icon(Icons.question_answer, color: Colors.black),
-                  elevation: 1,  // Diminuer l'ombre en ajustant l'élévation
+                  onPressed: _showCustomDatePicker,
+                  child: const Icon(Icons.calendar_month, color: Colors.black, size: 27),
+                  elevation: 4,  // Diminuer l'ombre en ajustant l'élévation
                   shape: const CircleBorder(),  // Forme de cercle
-                  tooltip: 'Aide / FAQ',
                 ),
               ),
             ),
@@ -1241,14 +1270,19 @@ class _MapWithMarkersPageState extends State<MapWithMarkersPage> with TickerProv
                           // Titre centré
                           Align(
                             alignment: Alignment.center,
-                            child: Text(
-                              '${filteredEvents.value.length} événements',
-                              style: const TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                fontFamily: 'Sora',
-                              ),
-                              textAlign: TextAlign.center,
+                            child: ValueListenableBuilder<List<POI>>(
+                              valueListenable: visibleEvents,
+                              builder: (context, events, child) {
+                                return Text(
+                                  '${events.length} événements',
+                                  style: const TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                    fontFamily: 'Sora',
+                                  ),
+                                  textAlign: TextAlign.center,
+                                );
+                              },
                             ),
                           ),
                         ],
@@ -1361,9 +1395,9 @@ class _MapWithMarkersPageState extends State<MapWithMarkersPage> with TickerProv
                     // Liste des événements
                     Expanded(
                       child: ValueListenableBuilder<List<POI>>(
-                        valueListenable: filteredEvents,
+                        valueListenable: visibleEvents,
                         builder: (context, events, child) {
-                          // Créer une copie de la liste des événements
+                          // Utiliser events comme source de données
                           List<POI> eventsList = List<POI>.from(events);
 
                           // Séparer les événements sponsorisés et non sponsorisés

@@ -122,7 +122,7 @@ class _EventsSelectionPageState extends State<EventsSelectionPage> {
           logger.i('Attempting to update preferences with Firebase UID: $firebaseId');
 
           final response = await http.put(
-            Uri.parse('http://10.0.2.2:3000/routes/preferences'),
+            Uri.parse('https://wazaapp-backend-e95231584d01.herokuapp.com/routes/preferences'),
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode({
               'firebaseId': firebaseId,

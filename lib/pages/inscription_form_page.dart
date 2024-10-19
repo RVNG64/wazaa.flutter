@@ -25,19 +25,34 @@ class _InscriptionFormPageState extends State<InscriptionFormPage> {
   final _formKey = GlobalKey<FormState>(); // Clé globale pour la validation du formulaire
   final ValueNotifier<bool> _isLoading = ValueNotifier(false); // Utilisation de ValueNotifier pour le loader
 
+  // Ajouter des ValueNotifier pour chaque champ pour suivre l'interaction utilisateur
+  final ValueNotifier<bool> _hasInteractedWithNom = ValueNotifier(false);
+  final ValueNotifier<bool> _hasInteractedWithPrenom = ValueNotifier(false);
+  final ValueNotifier<bool> _hasInteractedWithTelephone = ValueNotifier(false);
+  final ValueNotifier<bool> _hasInteractedWithEmail = ValueNotifier(false);
+  final ValueNotifier<bool> _hasInteractedWithMotDePasse = ValueNotifier(false);
+  final ValueNotifier<bool> _hasInteractedWithConfirmer = ValueNotifier(false);
+
   @override
   void dispose() {
-    // Ne pas oublier de nettoyer les controllers
+    // Ne pas oublier de nettoyer les controllers et ValueNotifier
     _nomController.dispose();
     _prenomController.dispose();
     _telephoneController.dispose();
     _emailController.dispose();
     _motDePasseController.dispose();
     _confirmerController.dispose();
-    _isLoading.dispose(); // Ne pas oublier de disposer le ValueNotifier
+    _isLoading.dispose();
+    _hasInteractedWithNom.dispose();
+    _hasInteractedWithPrenom.dispose();
+    _hasInteractedWithTelephone.dispose();
+    _hasInteractedWithEmail.dispose();
+    _hasInteractedWithMotDePasse.dispose();
+    _hasInteractedWithConfirmer.dispose();
     super.dispose();
   }
 
+  // Fonction pour valider les champs
   bool _isFieldValid(String? value, String? Function(String?)? validator) {
     if (validator != null) {
       return validator(value) == null;
@@ -59,7 +74,7 @@ class _InscriptionFormPageState extends State<InscriptionFormPage> {
             ],
           ),
         ),
-        child: SingleChildScrollView( // Permet de scroller si le contenu dépasse
+        child: SingleChildScrollView(
           child: ConstrainedBox(
             constraints: BoxConstraints(
               minHeight: MediaQuery.of(context).size.height, // S'assurer que le contenu prend au moins toute la hauteur
@@ -109,53 +124,101 @@ class _InscriptionFormPageState extends State<InscriptionFormPage> {
                     const SizedBox(height: 30), // Espacement
 
                     // Champs du formulaire stylisés
-                    StyledTextField(
-                      label: 'Nom',
-                      controller: _nomController,
-                      placeholder: 'Dupont',
-                      validator: (value) => value!.isEmpty ? 'Veuillez entrer votre nom' : null,
-                      isFieldValid: _isFieldValid(_nomController.text, (value) => value!.isEmpty ? 'Veuillez entrer votre nom' : null),
+                    ValueListenableBuilder<bool>(
+                      valueListenable: _hasInteractedWithNom,
+                      builder: (context, hasInteracted, _) {
+                        return StyledTextField(
+                          label: 'Nom',
+                          controller: _nomController,
+                          placeholder: 'Dupont',
+                          validator: (value) => value!.isEmpty ? 'Veuillez entrer votre nom' : null,
+                          isFieldValid: hasInteracted && _isFieldValid(_nomController.text, (value) => value!.isEmpty ? 'Veuillez entrer votre nom' : null),
+                          onChanged: () {
+                            _hasInteractedWithNom.value = true;
+                          },
+                        );
+                      },
                     ),
-                    StyledTextField(
-                      label: 'Prénom',
-                      controller: _prenomController,
-                      placeholder: 'Adrien',
-                      validator: (value) => value!.isEmpty ? 'Veuillez entrer votre prénom' : null,
-                      isFieldValid: _isFieldValid(_prenomController.text, (value) => value!.isEmpty ? 'Veuillez entrer votre prénom' : null),
+                    ValueListenableBuilder<bool>(
+                      valueListenable: _hasInteractedWithPrenom,
+                      builder: (context, hasInteracted, _) {
+                        return StyledTextField(
+                          label: 'Prénom',
+                          controller: _prenomController,
+                          placeholder: 'Adrien',
+                          validator: (value) => value!.isEmpty ? 'Veuillez entrer votre prénom' : null,
+                          isFieldValid: hasInteracted && _isFieldValid(_prenomController.text, (value) => value!.isEmpty ? 'Veuillez entrer votre prénom' : null),
+                          onChanged: () {
+                            _hasInteractedWithPrenom.value = true;
+                          },
+                        );
+                      },
                     ),
-                    StyledTextField(
-                      label: 'Téléphone',
-                      controller: _telephoneController,
-                      placeholder: '06 00 00 00 00',
-                      validator: (value) => value!.length == 10 ? null : 'Numéro de téléphone invalide',
-                      isFieldValid: _isFieldValid(_telephoneController.text, (value) => value!.length == 10 ? null : 'Numéro de téléphone invalide'),
+                    ValueListenableBuilder<bool>(
+                      valueListenable: _hasInteractedWithTelephone,
+                      builder: (context, hasInteracted, _) {
+                        return StyledTextField(
+                          label: 'Téléphone',
+                          controller: _telephoneController,
+                          placeholder: '0601020304',
+                          validator: (value) => value!.length == 10 ? null : 'Numéro de téléphone invalide',
+                          isFieldValid: hasInteracted && _isFieldValid(_telephoneController.text, (value) => value!.length == 10 ? null : 'Numéro de téléphone invalide'),
+                          onChanged: () {
+                            _hasInteractedWithTelephone.value = true;
+                          },
+                        );
+                      },
                     ),
-                    StyledTextField(
-                      label: 'E-mail',
-                      controller: _emailController,
-                      placeholder: 'contact@wazaa.app',
-                      validator: (value) => (value!.contains('@') && value.contains('.'))
-                          ? null
-                          : 'Veuillez entrer un email valide',
-                      isFieldValid: _isFieldValid(_emailController.text, (value) => (value!.contains('@') && value.contains('.')) ? null : 'Veuillez entrer un email valide'),
+                    ValueListenableBuilder<bool>(
+                      valueListenable: _hasInteractedWithEmail,
+                      builder: (context, hasInteracted, _) {
+                        return StyledTextField(
+                          label: 'E-mail',
+                          controller: _emailController,
+                          placeholder: 'contact@wazaa.app',
+                          validator: (value) => (value!.contains('@') && value.contains('.'))
+                              ? null
+                              : 'Veuillez entrer un email valide',
+                          isFieldValid: hasInteracted && _isFieldValid(_emailController.text, (value) => (value!.contains('@') && value.contains('.')) ? null : 'Veuillez entrer un email valide'),
+                          onChanged: () {
+                            _hasInteractedWithEmail.value = true;
+                          },
+                        );
+                      },
                     ),
-                    StyledTextField(
-                      label: 'Mot de passe',
-                      controller: _motDePasseController,
-                      obscureText: true,
-                      placeholder: '************',
-                      validator: (value) =>
-                          value!.length >= 6 ? null : 'Le mot de passe doit comporter au moins 6 caractères',
-                      isFieldValid: _isFieldValid(_motDePasseController.text, (value) => value!.length >= 6 ? null : 'Le mot de passe doit comporter au moins 6 caractères'),
+                    ValueListenableBuilder<bool>(
+                      valueListenable: _hasInteractedWithMotDePasse,
+                      builder: (context, hasInteracted, _) {
+                        return StyledTextField(
+                          label: 'Mot de passe',
+                          controller: _motDePasseController,
+                          obscureText: true,
+                          placeholder: '************',
+                          validator: (value) =>
+                              value!.length >= 6 ? null : 'Le mot de passe doit comporter au moins 6 caractères',
+                          isFieldValid: hasInteracted && _isFieldValid(_motDePasseController.text, (value) => value!.length >= 6 ? null : 'Le mot de passe doit comporter au moins 6 caractères'),
+                          onChanged: () {
+                            _hasInteractedWithMotDePasse.value = true;
+                          },
+                        );
+                      },
                     ),
-                    StyledTextField(
-                      label: 'Confirmer',
-                      controller: _confirmerController,
-                      obscureText: true,
-                      placeholder: '************',
-                      validator: (value) =>
-                          value == _motDePasseController.text ? null : 'Les mots de passe ne correspondent pas',
-                      isFieldValid: _isFieldValid(_confirmerController.text, (value) => value == _motDePasseController.text ? null : 'Les mots de passe ne correspondent pas'),
+                    ValueListenableBuilder<bool>(
+                      valueListenable: _hasInteractedWithConfirmer,
+                      builder: (context, hasInteracted, _) {
+                        return StyledTextField(
+                          label: 'Confirmer',
+                          controller: _confirmerController,
+                          obscureText: true,
+                          placeholder: '************',
+                          validator: (value) =>
+                              value == _motDePasseController.text ? null : 'Les mots de passe ne correspondent pas',
+                          isFieldValid: hasInteracted && _isFieldValid(_confirmerController.text, (value) => value == _motDePasseController.text ? null : 'Les mots de passe ne correspondent pas'),
+                          onChanged: () {
+                            _hasInteractedWithConfirmer.value = true;
+                          },
+                        );
+                      },
                     ),
 
                     const SizedBox(height: 20),
@@ -180,7 +243,7 @@ class _InscriptionFormPageState extends State<InscriptionFormPage> {
 
                                         if (user != null) {
                                           final response = await http.post(
-                                            Uri.parse('http://10.0.2.2:3000/auth/signup'),
+                                            Uri.parse('https://wazaapp-backend-e95231584d01.herokuapp.com/auth/signup'),
                                             headers: {'Content-Type': 'application/json'},
                                             body: jsonEncode({
                                               'firebaseId': user.uid,
@@ -250,6 +313,7 @@ class StyledTextField extends StatelessWidget {
   final String? placeholder;
   final String? Function(String?)? validator;
   final bool isFieldValid;
+  final VoidCallback? onChanged;
 
   const StyledTextField({
     Key? key,
@@ -259,6 +323,7 @@ class StyledTextField extends StatelessWidget {
     this.placeholder,
     this.validator,
     required this.isFieldValid,
+    this.onChanged,
   }) : super(key: key);
 
   @override
@@ -303,6 +368,11 @@ class StyledTextField extends StatelessWidget {
                   : null,
             ),
             validator: validator, // Validation incluse
+            onChanged: (_) {
+              if (onChanged != null) {
+                onChanged!();
+              }
+            },
           ),
         ],
       ),
