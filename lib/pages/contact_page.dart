@@ -79,7 +79,7 @@ class _ContactPageState extends State<ContactPage> {
 
     try {
         final response = await http.post(
-        Uri.parse('http://10.0.2.2:3000/send-email'),
+        Uri.parse('https://wazaapp-backend-e95231584d01.herokuapp.com/send-email'),
         headers: {
             'Content-Type': 'application/json',
             'Authorization': 'Bearer $token', 

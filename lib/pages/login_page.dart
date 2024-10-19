@@ -74,7 +74,7 @@ class _LoginPageState extends State<LoginPage> {
       }
 
       final response = await http.post(
-        Uri.parse('http://10.0.2.2:3000/auth/login'),
+        Uri.parse('https://wazaapp-backend-e95231584d01.herokuapp.com/auth/login'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',

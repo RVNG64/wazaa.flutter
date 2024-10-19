@@ -9,7 +9,7 @@ class EventNotifier extends ChangeNotifier {
   List<POI> get events => _events;
 
   // API URL de base
-  final String apiUrl = "http://10.0.2.2:3000";
+  final String apiUrl = "https://wazaapp-backend-e95231584d01.herokuapp.com";
 
   // Services nécessaires
   final UserService _userService = UserService();
@@ -39,7 +39,6 @@ class EventNotifier extends ChangeNotifier {
     'FMAAQU064V5BTDT3',
     'FMAAQU064V5C0Q9T',
     'FMAAQU064V5B8X2D',
-    'FMAAQU040V50YD7C',
     'FMAAQU064V5C0LDQ',
   ];
 
@@ -74,7 +73,7 @@ class EventNotifier extends ChangeNotifier {
 
     try {
       // Récupération des événements paginés
-      List<POI> apiEvents = await EventService('http://10.0.2.2:3000').fetchEventsByPage(_currentPage, _eventsPerPage);
+      List<POI> apiEvents = await EventService('https://wazaapp-backend-e95231584d01.herokuapp.com').fetchEventsByPage(_currentPage, _eventsPerPage);
       if (apiEvents.isNotEmpty) {
         _events.addAll(apiEvents);
         _currentPage++;
@@ -88,7 +87,7 @@ class EventNotifier extends ChangeNotifier {
 
       // Récupérer les événements sponsorisés manquants
       for (String missingId in missingSponsoredEventIDs) {
-        POI sponsoredEvent = await EventService('http://10.0.2.2:3000').fetchEventById(missingId);
+        POI sponsoredEvent = await EventService('https://wazaapp-backend-e95231584d01.herokuapp.com').fetchEventById(missingId);
         _events.add(sponsoredEvent);
       }
 
@@ -119,7 +118,7 @@ class EventNotifier extends ChangeNotifier {
     notifyListeners();
 
     try {
-      List<POI> apiEvents = await EventService('http://10.0.2.2:3000').fetchEventsInBounds(
+      List<POI> apiEvents = await EventService('https://wazaapp-backend-e95231584d01.herokuapp.com').fetchEventsInBounds(
         northEastLat: northEastLat,
         northEastLng: northEastLng,
         southWestLat: southWestLat,

@@ -132,7 +132,7 @@ class _StartButton extends StatelessWidget {
     return OutlinedButton(
       onPressed: onPressed,
       style: OutlinedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(horizontal: 100, vertical: 20),
+        padding: const EdgeInsets.symmetric(horizontal: 80, vertical: 20),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(50),
         ),
