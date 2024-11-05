@@ -1,0 +1,17 @@
+{
+  "hosting": {
+    "site": "wazaa-app-2eb01",
+    "public": "public",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "dynamicLinks": true
+      }
+    ]
+  }
+}

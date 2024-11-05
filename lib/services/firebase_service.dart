@@ -16,16 +16,16 @@ class FirebaseService {
   // Inscription utilisateur avec email et mot de passe
   Future<User?> signUpWithEmail(String email, String password) async {
     try {
-      logger.i('Attempting sign up with email: $email');
+      print('Attempting sign up with email: $email');
       UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
-      logger.i('User signed up successfully: ${userCredential.user?.uid}');
       return userCredential.user;
-    } catch (e) {
-      logger.e('Error during sign up: $e');
-      return null;
+    } on FirebaseAuthException catch (e) {
+      print('Error during sign up: $e');
+      // Relancer l'exception
+      throw e;
     }
   }
 
@@ -39,9 +39,12 @@ class FirebaseService {
       );
       logger.i('User signed in successfully: ${userCredential.user?.uid}');
       return userCredential.user;
+    } on FirebaseAuthException catch (e) {
+      logger.e('FirebaseAuthException during sign in: ${e.code}, ${e.message}');
+      throw e; // Relancer l'exception pour qu'elle soit gérée ailleurs
     } catch (e) {
-      logger.e('Error during sign in: $e');
-      return null;
+      logger.e('General error during sign in: $e');
+      throw e; // Relancer l'exception
     }
   }
 }

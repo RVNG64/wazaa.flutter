@@ -1,4 +1,4 @@
-package com.example.wazaa_app
+package com.wazaa.app
 
 import io.flutter.embedding.android.FlutterActivity
 

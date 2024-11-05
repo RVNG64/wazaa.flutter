@@ -17,6 +17,9 @@ import './profile_page.dart';
 import './faq_page.dart';
 import './event_swiper_page.dart';
 import './advanced_search_page.dart';
+import './create_event_page.dart';
+import '../widgets/animated_cluster.dart';
+import 'organized_events_page.dart';
 import 'dart:async';
 
 class MapWithMarkersPage extends StatefulWidget {
@@ -530,6 +533,7 @@ class _MapWithMarkersPageState extends State<MapWithMarkersPage> with TickerProv
                             fontSize: 16,
                             fontFamily: 'Poppins',
                             color: Colors.white70,
+                            fontStyle: FontStyle.italic,
                           ),
                           textAlign: TextAlign.center,
                         ),
@@ -643,17 +647,8 @@ class _MapWithMarkersPageState extends State<MapWithMarkersPage> with TickerProv
                           maxClusterRadius: 50,  // Rayon de clustering
                           size: const Size(40, 40),  // Taille des clusters
                           builder: (context, markers) {
-                            return Container(
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(20),
-                                color: Colors.blue.withOpacity(0.7),
-                              ),
-                              child: Center(
-                                child: Text(
-                                  markers.length.toString(),
-                                  style: const TextStyle(color: Colors.white),
-                                ),
-                              ),
+                            return AnimatedCluster(
+                              markerCount: markers.length,
                             );
                           },
                           popupOptions: PopupOptions(
@@ -744,7 +739,14 @@ class _MapWithMarkersPageState extends State<MapWithMarkersPage> with TickerProv
                           iconSize: 25,
                           icon: const Icon(Icons.add, color: Colors.white),
                           onPressed: () {
-                            // Logique pour ajouter un événement
+                            // Naviguer vers la page de création d'événements
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => CreateEventPage(),
+                              ),
+                            );
+                            /* Logique pour ajouter un événement
                             showDialog(
                               context: context,
                               builder: (BuildContext context) {
@@ -790,8 +792,9 @@ class _MapWithMarkersPageState extends State<MapWithMarkersPage> with TickerProv
 
                                             // Contenu
                                             const Text(
+                                              "Hey!👋 \n"
                                               "Il sera bientôt possible de créer vos propres événements.\n\n"
-                                              "En attendant, contactez-nous si vous souhaitez ajouter un événement via la page contact ou par email : contact@wazaa.app.",
+                                              "En attendant, contactez-nous si vous souhaitez ajouter un événement via la page contact ou par email : hello@wazaa.app.",
                                               style: TextStyle(
                                                 fontSize: 16,
                                                 fontFamily: 'Poppins',
@@ -867,7 +870,7 @@ class _MapWithMarkersPageState extends State<MapWithMarkersPage> with TickerProv
                                   ),
                                 );
                               },
-                            );
+                            ); */
                           },
                         ),
                       ),
@@ -924,7 +927,31 @@ class _MapWithMarkersPageState extends State<MapWithMarkersPage> with TickerProv
               ],
             ),
 
-            // Bouton flottant pour afficher le nombre de résultats ou la plage de dates
+          /* Bouton flottant pour les événements organisés
+          Positioned(
+            right: 10,
+            bottom: 155, // Positionné au-dessus du bouton de sélection de date
+            child: SizedBox(
+              width: 50,
+              height: 50,
+              child: FloatingActionButton(
+                heroTag: 'organized_events',
+                backgroundColor: Colors.white,
+                onPressed: () {
+                  // Naviguer vers la page des événements organisés
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => OrganizedEventsPage()),
+                  );
+                },
+                child: Icon(Icons.event, color: Colors.black, size: 27),
+                elevation: 4,
+                shape: CircleBorder(),
+              ),
+            ),
+          ), */
+
+          // Bouton flottant pour afficher le nombre de résultats ou la plage de dates
           Positioned(
             bottom: 90, // Positionnement au-dessus de la barre de navigation
             left: 0,
@@ -938,7 +965,7 @@ class _MapWithMarkersPageState extends State<MapWithMarkersPage> with TickerProv
                 },
                 child: Container(
                   // Adapte la largeur à l'espace disponible
-                  width: MediaQuery.of(context).size.width * 0.35, // Largeur du bouton
+                  width: MediaQuery.of(context).size.width * 0.38, // Largeur du bouton
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(50),
@@ -977,21 +1004,28 @@ class _MapWithMarkersPageState extends State<MapWithMarkersPage> with TickerProv
                                       );
                                     },
                                   )
-                                : Wrap( // Utilise Wrap pour éviter les débordements
-                                    key: ValueKey('dates'),
-                                    alignment: WrapAlignment.center, // Centrer les éléments
-                                    children: [
-                                      Text(
-                                        "Afficher la liste",
-                                        style: const TextStyle(
-                                          color: Colors.black,
-                                          fontSize: 12,
-                                          fontFamily: "Poppins",
-                                          fontWeight: FontWeight.w500,
-                                        ),
+                                : Wrap(
+                              key: ValueKey('dates'),
+                              alignment: WrapAlignment.center, // Centrer les éléments
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center, // Centre le contenu horizontalement
+                                  children: [
+                                    Text(
+                                      "Afficher la liste",
+                                      style: const TextStyle(
+                                        color: Colors.black,
+                                        fontSize: 12,
+                                        fontFamily: "Poppins",
+                                        fontWeight: FontWeight.w500,
                                       ),
-                                    ],
-                                  ),
+                                    ),
+                                    const SizedBox(width: 5), // Espace entre l'icône et le texte
+                                    Icon(Icons.list, size: 16, color: Colors.black), // Ajoutez l'icône ici
+                                  ],
+                                ),
+                              ],
+                            ),
                           ),
                         );
                       },
@@ -1002,7 +1036,7 @@ class _MapWithMarkersPageState extends State<MapWithMarkersPage> with TickerProv
             ),
           ),
 
-            // Bouton FAQ flottant
+            // Bouton flottant choix dates
             Positioned(
               right: 10,
               bottom: 90, // Ajustement de l'espacement par rapport à la barre de navigation
@@ -1010,6 +1044,7 @@ class _MapWithMarkersPageState extends State<MapWithMarkersPage> with TickerProv
                 width: 50,  // Largeur personnalisée
                 height: 50, // Hauteur personnalisée
                 child: FloatingActionButton(
+                  heroTag: 'date_picker',
                   backgroundColor: Colors.white,
                   onPressed: _showCustomDatePicker,
                   child: const Icon(Icons.calendar_month, color: Colors.black, size: 27),

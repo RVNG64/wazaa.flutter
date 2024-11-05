@@ -3,7 +3,7 @@ import 'package:provider/provider.dart'; // Import du Provider pour EventNotifie
 import 'package:wazaa_app/services/event_service.dart'; // Import du service d'événements
 import 'package:wazaa_app/models/poi.dart'; // Import du modèle des événements
 import '../services/event_notifier.dart'; // Import du EventNotifier
-import 'inscription_form_page.dart'; // Page d'inscription
+import 'role_choice_page.dart'; // Page de choix de rôle
 import 'login_page.dart'; // Page de connexion
 
 class HomePage extends StatefulWidget {
@@ -132,7 +132,7 @@ class _HomePageState extends State<HomePage> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => const InscriptionFormPage(),
+                                builder: (context) => const RoleChoicePage(),
                               ),
                             );
                           },

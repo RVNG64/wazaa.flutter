@@ -7,9 +7,9 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:562522560678:android:3802015698c6e72cb93c67",
+        "mobilesdk_app_id": "1:562522560678:android:c1d741b040b91473b93c67",
         "android_client_info": {
-          "package_name": "com.example.wazaa_app"
+          "package_name": "com.wazaa.app"
         }
       },
       "oauth_client": [],

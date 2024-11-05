@@ -1,15 +1,23 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
-import 'package:http_parser/http_parser.dart'; // Nécessaire pour le multipart upload
+import 'package:http_parser/http_parser.dart';
 import 'package:path/path.dart' as path;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
+import 'package:mime/mime.dart';
+import 'package:intl/intl.dart';
+import 'package:flutter/services.dart';
+import 'package:multi_select_flutter/multi_select_flutter.dart';
 import '../providers/auth_provider.dart' as my_auth;
-import 'package:mime/mime.dart'; // Pour obtenir le type MIME des fichiers
+import '../widgets/theme_notifier.dart';
+import '../services/organizer_service.dart';
 import '../services/user_service.dart';
+import '../models/organizer.dart';
 import '../models/user.dart';
 
 class ProfileInfosPage extends StatefulWidget {
@@ -27,7 +35,19 @@ class _ProfileInfosPageState extends State<ProfileInfosPage> {
   final TextEditingController _currentPasswordController = TextEditingController();
   final TextEditingController _newPasswordController = TextEditingController();
   final TextEditingController _confirmNewPasswordController = TextEditingController();
+  final TextEditingController _organizationNameController = TextEditingController();
+  final TextEditingController _websiteController = TextEditingController();
+  final TextEditingController _addressController = TextEditingController();
+  final TextEditingController _cityController = TextEditingController();
+  final TextEditingController _zipController = TextEditingController();
+  final TextEditingController _countryController = TextEditingController();
+  final TextEditingController _genderController = TextEditingController();
+  final TextEditingController _dobController = TextEditingController();
+  final TextEditingController _howwemetController = TextEditingController();
 
+  final List<String> _selectedSocialMedias = [];
+
+  Map<String, TextEditingController> _socialMediaControllers = {};
   String profilePicUrl = 'https://example.com/profile-pic.jpg'; // Par défaut
   File? _selectedImage;
 
@@ -35,6 +55,18 @@ class _ProfileInfosPageState extends State<ProfileInfosPage> {
   final ValueNotifier<Set<String>> _selectedCategories = ValueNotifier<Set<String>>({});
 
   UserModel? _user;
+  OrganizerModel? _organizer;
+
+  // Liste des options pour "Comment nous avez-vous connu?"
+  final List<String> _howWeMetOptions = [
+    'Bouche à oreille',
+    'Réseaux Sociaux',
+    'Recherche en ligne',
+    'Presse/Médias',
+    'Publicité',
+    'Événement',
+    'Autre',
+  ];
 
   @override
   void initState() {
@@ -42,16 +74,27 @@ class _ProfileInfosPageState extends State<ProfileInfosPage> {
     _fetchUserInfo();
   }
 
-  // Méthode pour récupérer les informations de l'utilisateur
   @override
   void dispose() {
     _nameController.dispose();
     _firstNameController.dispose();
     _phoneController.dispose();
     _emailController.dispose();
-    _currentPasswordController.dispose();  // Nettoyage
-    _newPasswordController.dispose();      // Nettoyage
-    _confirmNewPasswordController.dispose();  // Nettoyage
+    _currentPasswordController.dispose();
+    _newPasswordController.dispose();
+    _confirmNewPasswordController.dispose();
+    _organizationNameController.dispose();
+    _websiteController.dispose();
+    _addressController.dispose();
+    _cityController.dispose();
+    _zipController.dispose();
+    _countryController.dispose();
+    _genderController.dispose();
+    _dobController.dispose();
+    _howwemetController.dispose();
+    _socialMediaControllers.forEach((key, controller) {
+      controller.dispose();
+    });
     super.dispose();
   }
 
@@ -59,26 +102,67 @@ class _ProfileInfosPageState extends State<ProfileInfosPage> {
   Future<void> _fetchUserInfo() async {
     final authProvider = Provider.of<my_auth.AuthProvider>(context, listen: false);
     String? token = await authProvider.getIdToken();
-    if (token != null) {
-      UserModel? user = await _userService.getUserInfo(token);
-      if (user != null) {
-        setState(() {
-          _user = user;
-          _nameController.text = user.lastName;
-          _firstNameController.text = user.firstName;
-          _phoneController.text = user.phone;
-          _emailController.text = user.email;
-          profilePicUrl = user.profilePicture ?? "";
-          _selectedCategories.value = Set<String>.from(user.preferences);
-        });
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Erreur lors de la récupération des données utilisateur')),
-        );
+    String? role = authProvider.role; // Récupérer le rôle
+    if (token != null && role != null) {
+      if (role == 'user') {
+        UserModel? user = await _userService.getUserInfo(token);
+        if (user != null) {
+          setState(() {
+            _user = user;
+            _nameController.text = user.lastName;
+            _firstNameController.text = user.firstName;
+            _phoneController.text = user.phone;
+            _emailController.text = user.email;
+            profilePicUrl = user.profilePicture ?? "";
+            _genderController.text = user.gender; // Ajouté
+            _dobController.text = user.dob != null ? DateFormat('dd/MM/yyyy').format(user.dob!) : ''; // Format modifié
+            _cityController.text = user.city; // Ajouté
+            _zipController.text = user.zip; // Ajouté
+            _countryController.text = user.country; // Ajouté
+            _howwemetController.text = user.howwemet; // Ajouté
+            _selectedCategories.value = Set<String>.from(user.preferences);
+            print('User preferences: ${user.preferences}');
+            print('Selected categories: ${_selectedCategories.value}');
+          });
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Erreur lors de la récupération des données utilisateur')),
+          );
+        }
+      } else if (role == 'organizer') {
+        OrganizerModel? organizer = await OrganizerService().getOrganizerInfo(token);
+        if (organizer != null) {
+          setState(() {
+            _organizer = organizer;
+            _nameController.text = organizer.lastName;
+            _firstNameController.text = organizer.firstName;
+            _phoneController.text = organizer.phone;
+            _emailController.text = organizer.email;
+            profilePicUrl = organizer.profilePicture ?? "";
+            _organizationNameController.text = organizer.organizationName;
+            _websiteController.text = organizer.website;
+            _addressController.text = organizer.address;
+            _cityController.text = organizer.city;
+            _zipController.text = organizer.zip;
+            _countryController.text = organizer.country;
+            _howwemetController.text = organizer.howwemet;
+            _selectedSocialMedias.addAll(organizer.socialMedias.keys);
+            for (String media in organizer.socialMedias.keys) {
+              _socialMediaControllers[media] = TextEditingController(text: organizer.socialMedias[media]);
+            }
+            _selectedCategories.value = Set<String>.from(organizer.preferences);
+            print('Organizer preferences: ${organizer.preferences}');
+            print('Selected categories: ${_selectedCategories.value}');
+          });
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Erreur lors de la récupération des données organisateur')),
+          );
+        }
       }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Aucun token d\'authentification trouvé')),
+        const SnackBar(content: Text('Aucun token d\'authentification ou rôle non trouvé')),
       );
     }
   }
@@ -92,80 +176,6 @@ class _ProfileInfosPageState extends State<ProfileInfosPage> {
       setState(() {
         _selectedImage = File(pickedFile.path);
       });
-    }
-  }
-
-  // Méthode pour uploader une nouvelle image de profil vers Cloudinary
-  Future<void> _uploadProfilePicture() async {
-    if (_selectedImage == null) {
-      print('Aucune image sélectionnée');
-      return;
-    }
-
-    String cloudinaryUploadUrl = 'https://api.cloudinary.com/v1_1/CLOUD_NAME/image/upload';
-
-    String mimeType = lookupMimeType(_selectedImage!.path) ?? 'image/jpeg';
-    var mimeTypeData = mimeType.split('/');
-
-    var request = http.MultipartRequest('POST', Uri.parse(cloudinaryUploadUrl));
-    request.fields['upload_preset'] = 'your_upload_preset';
-
-    var multipartFile = await http.MultipartFile.fromPath(
-      'file',
-      _selectedImage!.path,
-      contentType: MediaType(mimeTypeData[0], mimeTypeData[1]),
-    );
-
-    request.files.add(multipartFile);
-
-    print('Envoi de la requête multipart à Cloudinary...');
-
-    try {
-      var response = await request.send();
-      var responseData = await response.stream.bytesToString();
-
-      if (response.statusCode == 200) {
-        final jsonResponse = jsonDecode(responseData);
-        String newProfilePicUrl = jsonResponse['secure_url'];
-
-        setState(() {
-          profilePicUrl = newProfilePicUrl;
-        });
-
-        print('Photo de profil mise à jour avec succès : $newProfilePicUrl');
-
-        // Mettre à jour l'URL dans le backend
-        final authProvider = Provider.of<my_auth.AuthProvider>(context, listen: false);
-        String? token = await authProvider.getIdToken();
-        if (token != null) {
-          print('Mise à jour de la photo de profil côté serveur...');
-          bool success = await _userService.updateUserProfilePicture(token, newProfilePicUrl);
-          if (success) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Photo de profil synchronisée avec le serveur.')),
-            );
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Échec de la synchronisation de la photo de profil avec le serveur.')),
-            );
-          }
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Aucun token d\'authentification trouvé')),
-          );
-        }
-      } else {
-        print('Échec de l\'upload de la photo: ${response.statusCode}');
-        print('Corps de la réponse: $responseData');
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Échec de l\'upload de la photo.')),
-        );
-      }
-    } catch (e) {
-      print('Exception lors de l\'upload de la photo: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Erreur lors de l\'upload de la photo.')),
-      );
     }
   }
 
@@ -240,25 +250,27 @@ class _ProfileInfosPageState extends State<ProfileInfosPage> {
   Future<void> _updateProfile() async {
     final authProvider = Provider.of<my_auth.AuthProvider>(context, listen: false);
     String? token = await authProvider.getIdToken();
+    String? role = authProvider.role;
 
-    if (token == null) {
+    if (token == null || role == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Aucun token d\'authentification trouvé')),
+        const SnackBar(content: Text('Aucun token d\'authentification ou rôle non trouvé')),
       );
       return;
     }
 
-    String newProfilePicUrl = profilePicUrl; // Garder l'URL actuelle si aucune image n'est sélectionnée
+    String newProfilePicUrl = profilePicUrl;
 
     if (_selectedImage != null) {
-      // Si une nouvelle image a été sélectionnée, téléchargez-la sur Cloudinary
-      String cloudinaryUploadUrl = 'https://api.cloudinary.com/v1_1/CLOUD_NAME/image/upload';
+      // Upload de l'image vers Cloudinary
+      String cloudinaryUploadUrl = 'https://api.cloudinary.com/v1_1/${dotenv.env['CLOUDINARY_CLOUD_NAME']}/image/upload';
+      String cloudinaryPreset = dotenv.env['CLOUDINARY_PRESET'] ?? '';
 
       String mimeType = lookupMimeType(_selectedImage!.path) ?? 'image/jpeg';
       var mimeTypeData = mimeType.split('/');
 
       var request = http.MultipartRequest('POST', Uri.parse(cloudinaryUploadUrl));
-      request.fields['upload_preset'] = 'your_upload_preset';
+      request.fields['upload_preset'] = cloudinaryPreset; // Utiliser la variable d'environnement
 
       var multipartFile = await http.MultipartFile.fromPath(
         'file',
@@ -292,15 +304,71 @@ class _ProfileInfosPageState extends State<ProfileInfosPage> {
       }
     }
 
+    // Conversion de la date de naissance de 'dd/MM/yyyy' à 'yyyy-MM-dd' pour le backend
+    String? formattedDob;
+    if (_dobController.text.isNotEmpty) {
+      try {
+        DateTime parsedDate = DateFormat('dd/MM/yyyy').parse(_dobController.text);
+        formattedDob = DateFormat('yyyy-MM-dd').format(parsedDate);
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Format de date invalide.')),
+        );
+        return;
+      }
+    }
+
     // Mise à jour des autres informations (nom, prénom, etc.) avec l'URL de la photo (nouvelle ou existante)
-    bool success = await _userService.updateUserProfile(
-      token,
-      _nameController.text,
-      _firstNameController.text,
-      _phoneController.text,
-      newProfilePicUrl, // Soit la nouvelle URL, soit l'ancienne
-      _selectedCategories.value, // Ajout des préférences sélectionnées
-    );
+    bool success = false;
+
+    if (role == 'user') {
+      // Mise à jour pour les utilisateurs
+      Map<String, String> socialMedias = {};
+      for (String media in _selectedSocialMedias) {
+        String link = _socialMediaControllers[media]?.text ?? '';
+        socialMedias[media] = link;
+      }
+
+      success = await _userService.updateUserProfile(
+        token,
+        _nameController.text,
+        _firstNameController.text,
+        _phoneController.text,
+        newProfilePicUrl,
+        _selectedCategories.value,
+        gender: _genderController.text,
+        dob: formattedDob, // Utiliser la date formatée
+        city: _cityController.text,
+        zip: _zipController.text,
+        country: _countryController.text,
+        howwemet: _howwemetController.text,
+        socialMedias: socialMedias,
+      );
+    } else if (role == 'organizer') {
+      // Mise à jour pour les organisateurs
+      Map<String, String> socialMedias = {};
+      for (String media in _selectedSocialMedias) {
+        String link = _socialMediaControllers[media]?.text ?? '';
+        socialMedias[media] = link;
+      }
+
+      success = await OrganizerService().updateOrganizerProfile(
+        token,
+        _nameController.text,
+        _firstNameController.text,
+        _phoneController.text,
+        newProfilePicUrl,
+        _organizationNameController.text,
+        _websiteController.text,
+        _addressController.text,
+        _cityController.text,
+        _zipController.text,
+        _countryController.text,
+        _howwemetController.text,
+        _selectedCategories.value,
+        socialMedias,
+      );
+    }
 
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -327,30 +395,35 @@ class _ProfileInfosPageState extends State<ProfileInfosPage> {
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<my_auth.AuthProvider>(context, listen: false);
+    final theme = Theme.of(context);
+    String? role = authProvider.role; // Récupérer le rôle
+
+    // Liste des pays (vous pouvez utiliser un package ou une liste plus complète)
+    final List<String> countryList = ['France', 'Belgique', 'Suisse', 'Canada', 'Espagne', 'Autre'];
 
     return Scaffold(
       appBar: AppBar(
         toolbarHeight: 85,
-        backgroundColor: Colors.white,
+        backgroundColor: theme.appBarTheme.backgroundColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: Icon(Icons.arrow_back, color: theme.iconTheme.color),
           onPressed: () {
             Navigator.pop(context);
           },
         ),
         centerTitle: true,
-        title: const Text(
+        title: Text(
           'Mes Informations',
-          style: TextStyle(
-            fontFamily: 'Sora',
+          style: theme.textTheme.titleLarge?.copyWith(
             fontSize: 24,
+            fontFamily: 'Sora',
             fontWeight: FontWeight.w900,
-            color: Colors.black,
+            color: theme.appBarTheme.titleTextStyle?.color ?? Colors.white,
           ),
         ),
       ),
-      body: _user == null
+      body: (_user == null && _organizer == null)
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 20.0),
@@ -366,9 +439,9 @@ class _ProfileInfosPageState extends State<ProfileInfosPage> {
                         radius: 50,
                         backgroundImage: _selectedImage != null
                             ? FileImage(_selectedImage!)
-                            : (profilePicUrl != null && profilePicUrl.isNotEmpty)
+                            : (profilePicUrl.isNotEmpty)
                                 ? NetworkImage(profilePicUrl)
-                                : AssetImage('lib/assets/images/default_profile_pic.png'),
+                                : const AssetImage('lib/assets/images/default_profile_pic.png') as ImageProvider,
                       ),
                       Positioned(
                         bottom: 0,
@@ -402,6 +475,7 @@ class _ProfileInfosPageState extends State<ProfileInfosPage> {
 
                   const SizedBox(height: 30),
 
+                  // Champs communs pour User et Organizer
                   _buildProfileInput('Nom', _nameController),
                   const SizedBox(height: 15),
                   _buildProfileInput('Prénom', _firstNameController),
@@ -409,6 +483,38 @@ class _ProfileInfosPageState extends State<ProfileInfosPage> {
                   _buildProfileInput('Téléphone', _phoneController),
                   const SizedBox(height: 15),
                   _buildProfileInput('E-Mail', _emailController),
+                  const SizedBox(height: 15),
+                  _buildDropdownField('Comment nous avez-vous connu?', _howwemetController, _howWeMetOptions),
+                  const SizedBox(height: 15),
+
+                  // Champs spécifiques en fonction du rôle
+                  if (role == 'organizer') ...[
+                    _buildProfileInput('Nom de l\'organisation', _organizationNameController),
+                    const SizedBox(height: 15),
+                    _buildProfileInput('Site Web', _websiteController),
+                    const SizedBox(height: 15),
+                    _buildProfileInput('Adresse', _addressController),
+                    const SizedBox(height: 15),
+                    _buildCityAutocompleteField('Ville', _cityController),
+                    const SizedBox(height: 15),
+                    _buildNumericInput('Code Postal', _zipController),
+                    const SizedBox(height: 15),
+                    _buildDropdownField('Pays', _countryController, countryList),
+                    const SizedBox(height: 15),
+                    _buildMultiSelectField('Réseaux Sociaux', _selectedSocialMedias),
+                    const SizedBox(height: 15),
+                  ] else if (role == 'user') ...[
+                    _buildDropdownField('Genre', _genderController, ['Homme', 'Femme', 'Autre']),
+                    const SizedBox(height: 15),
+                    _buildDatePickerField('Date de naissance', _dobController),
+                    const SizedBox(height: 15),
+                    _buildCityAutocompleteField('Ville (Où habitez-vous?)', _cityController),
+                    const SizedBox(height: 15),
+                    _buildNumericInput('Code Postal', _zipController),
+                    const SizedBox(height: 15),
+                    _buildDropdownField('Pays', _countryController, countryList),
+                    const SizedBox(height: 15),
+                  ],
 
                   const SizedBox(height: 50),
 
@@ -424,10 +530,10 @@ class _ProfileInfosPageState extends State<ProfileInfosPage> {
                         onPressed: () {
                           Navigator.pop(context);
                         },
-                        child: const Text(
+                        child: Text(
                           'Annuler',
                           style: TextStyle(
-                            color: Colors.black87, // Plus foncé
+                            color: Theme.of(context).textTheme.bodyLarge?.color,
                             fontFamily: 'Poppins',
                             fontSize: 14,
                             decoration: TextDecoration.underline, // Souligné
@@ -477,12 +583,13 @@ class _ProfileInfosPageState extends State<ProfileInfosPage> {
                     decoration: BoxDecoration(
                       color: Colors.grey.shade50, // Couleur de fond subtile pour la section
                       borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: Colors.grey.shade300), // Bordure fine
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withOpacity(0.05),
                           spreadRadius: 2,
                           blurRadius: 10,
-                          offset: Offset(0, 5), // Ombre douce sous le container
+                          offset: const Offset(0, 5), // Ombre douce sous le container
                         ),
                       ],
                     ),
@@ -559,7 +666,7 @@ class _ProfileInfosPageState extends State<ProfileInfosPage> {
                       ],
                     ),
                   ),
-                  
+
                   Container(
                     margin: const EdgeInsets.symmetric(vertical: 30),
                     child: Divider(
@@ -568,7 +675,7 @@ class _ProfileInfosPageState extends State<ProfileInfosPage> {
                       height: 1,
                     ),
                   ),
-                  
+
                   // Bouton de suppression du compte
                   ElevatedButton(
                     onPressed: () => _confirmAccountDeletion(context),
@@ -595,7 +702,6 @@ class _ProfileInfosPageState extends State<ProfileInfosPage> {
                     ),
                   ),
                   const SizedBox(height: 30),
-
                 ],
               ),
             ),
@@ -680,8 +786,65 @@ class _ProfileInfosPageState extends State<ProfileInfosPage> {
     );
   }
 
-  // Fonction pour générer un champ de mot de passe
-  Widget _buildPasswordInput(String label, TextEditingController controller) {
+  // Méthode pour générer un champ DropdownButtonFormField
+  Widget _buildDropdownField(String label, TextEditingController controller, List<String> items) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+            fontFamily: 'Poppins',
+          ),
+        ),
+        const SizedBox(height: 5),
+        DropdownButtonFormField<String>(
+          value: controller.text.isNotEmpty && items.contains(controller.text) ? controller.text : null,
+          items: items.map((String value) {
+            return DropdownMenuItem<String>(
+              value: value,
+              child: Text(value),
+            );
+          }).toList(),
+          onChanged: (String? newValue) {
+            setState(() {
+              controller.text = newValue ?? '';
+            });
+          },
+          decoration: const InputDecoration(
+            border: UnderlineInputBorder(),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Méthode pour générer un champ DatePicker
+  Widget _buildDatePickerField(String label, TextEditingController controller) {
+    return GestureDetector(
+      onTap: () async {
+        DateTime? pickedDate = await showDatePicker(
+          context: context,
+          initialDate: controller.text.isNotEmpty
+              ? DateFormat('yyyy-MM-dd').parse(controller.text)
+              : DateTime.now(),
+          firstDate: DateTime(1900),
+          lastDate: DateTime.now(),
+        );
+        if (pickedDate != null) {
+          controller.text = DateFormat('yyyy-MM-dd').format(pickedDate);
+        }
+      },
+      child: AbsorbPointer(
+        child: _buildProfileInput(label, controller),
+      ),
+    );
+  }
+
+  // Méthode pour générer un champ TextFormField pour la ville sans autocomplétion
+  Widget _buildCityAutocompleteField(String label, TextEditingController controller) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -696,9 +859,145 @@ class _ProfileInfosPageState extends State<ProfileInfosPage> {
         const SizedBox(height: 5),
         TextFormField(
           controller: controller,
+          decoration: const InputDecoration(
+            border: UnderlineInputBorder(),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Méthode pour générer un champ numérique
+  Widget _buildNumericInput(String label, TextEditingController controller) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+            fontFamily: 'Poppins',
+          ),
+        ),
+        const SizedBox(height: 5),
+        TextFormField(
+          controller: controller,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(
+            border: UnderlineInputBorder(),
+          ),
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+        ),
+      ],
+    );
+  }
+
+  // Méthode pour générer un champ MultiSelect pour les réseaux sociaux
+  Widget _buildMultiSelectField(String label, List<String> selectedItems) {
+    final socialMediaOptions = [
+      'Facebook',
+      'Instagram',
+      'Twitter',
+      'LinkedIn',
+      'YouTube',
+      'TikTok',
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+            fontFamily: 'Poppins',
+          ),
+        ),
+        const SizedBox(height: 5),
+        MultiSelectDialogField(
+          items: socialMediaOptions.map((e) => MultiSelectItem<String>(e, e)).toList(),
+          title: const Text('Sélectionnez vos réseaux sociaux'),
+          selectedColor: Colors.blue,
+          buttonText: Text(
+            selectedItems.isEmpty ? 'Choisir' : selectedItems.join(', '),
+            style: const TextStyle(
+              fontSize: 16,
+              fontFamily: 'Poppins',
+            ),
+          ),
+          onConfirm: (values) {
+            setState(() {
+              // Gérer les réseaux sociaux non sélectionnés
+              List<String> removedItems = selectedItems.where((item) => !values.contains(item)).toList();
+              for (String item in removedItems) {
+                _socialMediaControllers[item]?.dispose();
+                _socialMediaControllers.remove(item);
+              }
+              selectedItems.clear();
+              selectedItems.addAll(List<String>.from(values));
+
+              // Initialiser les contrôleurs pour les nouveaux réseaux sociaux sélectionnés
+              for (String item in selectedItems) {
+                if (!_socialMediaControllers.containsKey(item)) {
+                  _socialMediaControllers[item] = TextEditingController();
+                }
+              }
+            });
+          },
+          initialValue: selectedItems,
+        ),
+        // Afficher les champs de saisie pour les réseaux sociaux sélectionnés
+        ...selectedItems.map((platform) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 10),
+              Text(
+                'Lien $platform',
+                style: const TextStyle(
+                  fontWeight: FontWeight.normal,
+                  fontSize: 14,
+                  fontFamily: 'Poppins',
+                ),
+              ),
+              TextFormField(
+                controller: _socialMediaControllers[platform],
+                decoration: InputDecoration(
+                  hintText: 'Entrez le lien de votre $platform',
+                ),
+              ),
+            ],
+          );
+        }).toList(),
+      ],
+    );
+  }
+
+  // Fonction pour générer un champ de mot de passe
+  Widget _buildPasswordInput(String label, TextEditingController controller) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+            fontFamily: 'Poppins',
+            color: Colors.black,
+          ),
+        ),
+        const SizedBox(height: 5),
+        TextFormField(
+          controller: controller,
           obscureText: true,
           decoration: const InputDecoration(
             border: UnderlineInputBorder(),
+          ),
+          style: const TextStyle(
+            color: Colors.black,
           ),
         ),
       ],
@@ -825,5 +1124,3 @@ class _CategoryTile extends StatelessWidget {
     );
   }
 }
-
-           

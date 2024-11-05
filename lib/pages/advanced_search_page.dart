@@ -17,12 +17,14 @@ class _AdvancedSearchPageState extends State<AdvancedSearchPage> {
   bool _hasSearched = false;
   bool _isSearchButtonDisabled = true;
   String _sortOrder = 'chronological'; // Chronological by default
-  bool _isGridView = false; // To toggle between list and grid view
+  bool _isGridView = true; // To toggle between list and grid view
   bool _isSearchSectionVisible = true; // To toggle search section visibility
+  ScrollController _scrollController = ScrollController();
 
   @override
   void dispose() {
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -64,6 +66,11 @@ class _AdvancedSearchPageState extends State<AdvancedSearchPage> {
 
       // Indiquer que l'utilisateur a effectué une recherche
       _hasSearched = true;
+
+      // Réinitialiser la position du ScrollController en haut de la liste
+      if (_scrollController.hasClients) {
+        _scrollController.jumpTo(0); // Scroll directement en haut des résultats
+      }
     });
   }
 
@@ -211,27 +218,24 @@ class _AdvancedSearchPageState extends State<AdvancedSearchPage> {
               child: event.photoUrl != null && event.photoUrl!.isNotEmpty
                   ? Image.network(
                       event.photoUrl!,
-                      width: 100, // Largeur définie
+                      width: 130, // Largeur définie
                       height: double.infinity, // Remplit la hauteur de la carte
                       fit: BoxFit.cover, // Adapte l'image à l'espace
                       errorBuilder: (context, error, stackTrace) {
                         // Gestion d'erreur: affiche une image locale si l'URL échoue
                         return Image.asset(
                           'lib/assets/images/default_event_poster.png', // Image par défaut locale
-                          width: 100,
+                          width: 130,
                           height: double.infinity,
                           fit: BoxFit.cover,
                         );
                       },
                     )
-                  : Container(
-                      width: 100, // Largeur définie pour correspondre à l'image
-                      color: Colors.grey, // Fond gris si l'image est absente
-                      child: const Icon(
-                        Icons.image_not_supported,
-                        color: Colors.white,
-                        size: 50, // Taille de l'icône si pas d'image
-                      ),
+                  : Image.asset(
+                      'lib/assets/images/default_event_poster.png', // Image par défaut locale
+                      width: 130,
+                      height: double.infinity,
+                      fit: BoxFit.cover,
                     ),
             ),
             // Détails de l'événement
@@ -263,20 +267,19 @@ class _AdvancedSearchPageState extends State<AdvancedSearchPage> {
                     ),
                     const SizedBox(height: 8),
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Row(
-                          children: [
-                            const Icon(Icons.location_on, size: 16, color: Color(0xFF666666)),
-                            const SizedBox(width: 4),
-                            Text(
-                              event.location?.city ?? "Ville non spécifiée",
-                              style: const TextStyle(fontSize: 14, color: Color(0xFF666666)),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
+                        const Icon(Icons.location_on, size: 16, color: Color(0xFF666666)),
+                        const SizedBox(width: 4),
+                        // Utilisation de Flexible pour le nom de la ville
+                        Flexible(
+                          child: Text(
+                            event.location?.city ?? "Ville non spécifiée",
+                            style: const TextStyle(fontSize: 14, color: Color(0xFF666666)),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis, // Tronquer si le texte dépasse
+                          ),
                         ),
+                        Spacer(), // Ajout d'un Spacer pour séparer la ville et la date
                         Text(
                           DateFormat('dd/MM').format(DateTime.parse(event.startDate)),
                           style: const TextStyle(fontSize: 14, color: Color(0xFF666666)),
@@ -296,7 +299,7 @@ class _AdvancedSearchPageState extends State<AdvancedSearchPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white, // Le fond de la page reste blanc en haut
+      backgroundColor: Colors.white,
       body: Column(
         children: [
           // Bouton stylé pour réafficher/masquer la section de recherche
@@ -470,7 +473,7 @@ class _AdvancedSearchPageState extends State<AdvancedSearchPage> {
                               ),
                             ],
                           ),
-                          child: Icon(Icons.calendar_today, color: Colors.black, size: 24),
+                          child: Icon(Icons.calendar_month, color: Colors.black, size: 24),
                         ),
                       ),
                     ],
@@ -588,6 +591,7 @@ class _AdvancedSearchPageState extends State<AdvancedSearchPage> {
                                 ),
                               )
                             : ListView.builder(
+                                controller: _scrollController, // Ajout du ScrollController ici
                                 itemCount: _filteredEvents.length,
                                 itemBuilder: (context, index) {
                                   final event = _filteredEvents[index];

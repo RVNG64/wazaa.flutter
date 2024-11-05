@@ -7,6 +7,33 @@ import '../models/user.dart';
 class UserService {
   final String baseUrl = 'https://wazaapp-backend-e95231584d01.herokuapp.com/auth'; // Assurez-vous que l'URL est correcte
 
+
+  Future<String?> getUserRole(String token) async {
+    try {
+      print('Envoi de la requête GET /auth/role avec le token: $token');
+      final response = await http.get(
+        Uri.parse('$baseUrl/role'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        print('Réponse réussie: ${response.body}');
+        final data = jsonDecode(response.body);
+        return data['role'] as String?;
+      } else {
+        print('Erreur lors de la récupération du rôle utilisateur: ${response.statusCode}');
+        print('Corps de la réponse: ${response.body}');
+        return null;
+      }
+    } catch (e) {
+      print('Exception lors de la récupération du rôle utilisateur: $e');
+      return null;
+    }
+  }
+
   // Méthode pour récupérer les informations de l'utilisateur
   Future<UserModel?> getUserInfo(String token) async {
     try {
@@ -65,15 +92,21 @@ class UserService {
 
   // Méthode mise à jour pour inclure les préférences
   Future<bool> updateUserProfile(
-    String token, 
-    String lastName, 
-    String firstName, 
-    String phone, 
-    String profilePicture, 
-    Set<String> preferences
-  ) async {
+    String token,
+    String lastName,
+    String firstName,
+    String phone,
+    String profilePicture,
+    Set<String> preferences, {
+    String? gender,
+    String? dob,
+    String? city,
+    String? zip,
+    String? country,
+    String? howwemet,
+    Map<String, String>? socialMedias,
+  }) async {
     try {
-      print('Envoi de la requête PUT /auth/user avec le token: $token');
       final response = await http.put(
         Uri.parse('$baseUrl/user'),
         headers: {
@@ -85,7 +118,14 @@ class UserService {
           'firstName': firstName,
           'phone': phone,
           'profilePicture': profilePicture,
-          'preferences': preferences.toList(),  // Ajout des préférences
+          'preferences': preferences.toList(),
+          'gender': gender,
+          'dob': dob,
+          'city': city,
+          'zip': zip,
+          'country': country,
+          'howwemet': howwemet,
+          'socialMedias': socialMedias,
         }),
       );
 
@@ -152,10 +192,20 @@ class UserService {
         },
       );
 
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        List<String> favorites = List<String>.from(data['favorites']);
-        return favorites;
+
+        // Vérifier si 'favorites' est présent et non nul
+        if (data['favorites'] != null && data['favorites'] is List) {
+          List<String> favorites = List<String>.from(data['favorites']);
+          return favorites;
+        } else {
+          print('Aucun favori trouvé dans la réponse');
+          return [];
+        }
       } else {
         print('Erreur lors de la récupération des favoris : ${response.body}');
         return null;

@@ -56,7 +56,7 @@ class FAQPage extends StatelessWidget {
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 20.0),
                 child: Text(
-                  'FAQ - BUG',
+                  'FAQ',
                   style: TextStyle(
                     fontFamily: 'Sora',
                     fontSize: 40,
@@ -131,11 +131,15 @@ class FAQList extends StatelessWidget {
       ),
       const FAQItem(
         question: 'Comment ajouter un événement ?',
-        answer: "Vous pourrez bientôt le faire directement depuis l\'application! En attendant, contactez-nous via le bouton ci-dessous ou via contact@wazaa.app.",
+        answer: "Vous pourrez bientôt le faire directement depuis l\'application! En attendant, contactez-nous via le bouton ci-dessous ou via hello@wazaa.app.",
       ),
       const FAQItem(
         question: 'Sera-t-il possible d\'ajouter des amis, partager des événements et chatter ?',
         answer: 'Oui, ces fonctionnalités sont prévues dans les prochaines mises à jour. Restez connectés !',
+      ),
+      const FAQItem(
+        question: 'Quelles sont les futures fonctionnalités prévues ?',
+        answer: 'Les prochaines mises à jour incluront la possibilité de créer des événements depuis l\'application, de partager des événements, d\'ajouter des amis et chatter avec eux.',
       ),
     ];
 
@@ -180,6 +184,7 @@ class FAQItem extends StatelessWidget {
             padding: const EdgeInsets.all(16.0),
             child: Text(
               answer,
+              textAlign: TextAlign.justify,
               style: const TextStyle(
                 fontFamily: 'Poppins',
                 fontSize: 15,

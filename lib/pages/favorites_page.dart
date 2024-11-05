@@ -23,8 +23,22 @@ class _FavoritesPageState extends State<FavoritesPage> {
   bool sortAscending = true; // Set default to true (show nearest first)
 
   @override
+  void initState() {
+    super.initState();
+    // Charger les favoris lorsque la page est initialisée
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<EventNotifier>(context, listen: false).loadFavorites();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final eventNotifier = Provider.of<EventNotifier>(context);
     final favoriteEvents = Provider.of<EventNotifier>(context).favoriteEvents;
+
+    if (eventNotifier.isLoadingFavorites) {
+      return Center(child: CircularProgressIndicator());
+    }
 
     // Initialiser la localisation française
     Intl.defaultLocale = 'fr_FR'; // Forcer la localisation française

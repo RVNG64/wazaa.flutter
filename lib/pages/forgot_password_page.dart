@@ -149,7 +149,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                             controller: _emailController,
                             decoration: InputDecoration(
                               labelText: 'E-mail',
-                              hintText: 'contact@wazaa.com',
+                              hintText: 'hello@wazaa.app',
                               labelStyle: const TextStyle(color: Colors.white),
                               hintStyle: const TextStyle(color: Colors.white54),
                               enabledBorder: OutlineInputBorder(

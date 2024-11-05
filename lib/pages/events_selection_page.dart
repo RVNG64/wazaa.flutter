@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../providers/auth_provider.dart' as custom_auth;
+import 'package:provider/provider.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'welcome_page.dart';
@@ -119,6 +121,9 @@ class _EventsSelectionPageState extends State<EventsSelectionPage> {
             return;
           }
 
+          final authProvider = Provider.of<custom_auth.AuthProvider>(context, listen: false);
+          String? role = authProvider.role;
+
           logger.i('Attempting to update preferences with Firebase UID: $firebaseId');
 
           final response = await http.put(
@@ -127,6 +132,7 @@ class _EventsSelectionPageState extends State<EventsSelectionPage> {
             body: jsonEncode({
               'firebaseId': firebaseId,
               'categories': _selectedCategories.value.toList(),
+              'role': role, // Ajouter le rôle
             }),
           );
 

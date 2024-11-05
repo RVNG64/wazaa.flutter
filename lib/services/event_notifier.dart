@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import '../providers/auth_provider.dart';
 import '../models/poi.dart';
+import '../models/event.dart';
 import '../services/event_service.dart';
 import '../services/user_service.dart';
 
 class EventNotifier extends ChangeNotifier {
   List<POI> _events = [];
+  List<Event> _nativeEvents = [];
   List<POI> get events => _events;
+  List<Event> get nativeEvents => _nativeEvents;
 
   // API URL de base
   final String apiUrl = "https://wazaapp-backend-e95231584d01.herokuapp.com";
@@ -28,8 +31,11 @@ class EventNotifier extends ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get hasMoreEvents => _hasMoreEvents;
 
+  bool _isLoadingFavorites = false;
+  bool get isLoadingFavorites => _isLoadingFavorites;
+
   // Indicateur pour savoir si les événements ont déjà été chargés
-  bool get hasEventsLoaded => _events.isNotEmpty;
+  bool get hasEventsLoaded => _events.isNotEmpty || _nativeEvents.isNotEmpty;
   bool _areEventsPreloaded = false;  // Nouvel indicateur d'état
   bool get areEventsPreloaded => _areEventsPreloaded;  // Getter pour l'état
 
@@ -150,17 +156,21 @@ class EventNotifier extends ChangeNotifier {
   }
 
   // Getter pour les événements favoris
-  List<POI> get favoriteEvents =>
-      _events.where((event) => _favoriteEventIds.contains(event.eventID)).toList();
+  List<POI> get favoriteEvents => _favoriteEvents;
 
   // Vérifier si un événement est favori
-  bool isFavorite(POI event) {
-    return _favoriteEventIds.contains(event.eventID);
+  bool isFavorite(dynamic event) {
+    String eventId = event is POI ? event.eventID : (event is Event ? event.id : '');
+    return _favoriteEventIds.contains(eventId);
   }
 
   // Charger les favoris depuis le backend
   Future<void> loadFavorites() async {
+    notifyListeners();
+
     String? token = await _authProvider.getIdToken();
+    //print('Token obtenu : $token');
+
     if (token != null) {
       List<String>? favorites = await _userService.getUserFavorites(token);
       if (favorites != null) {
@@ -171,40 +181,84 @@ class EventNotifier extends ChangeNotifier {
 
         for (String eventId in _favoriteEventIds) {
           try {
-            POI event = await EventService(apiUrl).fetchEventById(eventId);
+            dynamic event = await EventService(apiUrl).fetchEventById(eventId);
             _favoriteEvents.add(event);
           } catch (e) {
-            //print('Erreur lors du chargement de l\'événement $eventId : $e');
+            // Gérer les erreurs si nécessaire
             failedEventIds.add(eventId);
           }
         }
-
         notifyListeners();
       }
     }
   }
 
   // Ajouter un événement aux favoris
-  Future<void> addToFavorites(POI event) async {
+  Future<void> addToFavorites(dynamic event) async {
     String? token = await _authProvider.getIdToken();
-    if (token != null) {
-      bool success = await _userService.addEventToFavorites(token, event.eventID);
+    String eventId = event is POI ? event.eventID : (event is Event ? event.id : '');
+
+    if (token != null && eventId.isNotEmpty) {
+      bool success = await _userService.addEventToFavorites(token, eventId);
       if (success) {
-        _favoriteEventIds.add(event.eventID);
-        _favoriteEvents.add(event); // Ajouter l'événement directement
+        _favoriteEventIds.add(eventId);
+        _favoriteEvents.add(event);
+        notifyListeners();
+      }
+    }
+  }
+
+  // Ajouter un événement (Native Event) aux favoris
+  Future<void> addEventToFavorites(Event event) async {
+    String? token = await _authProvider.getIdToken();
+    if (token != null && event.id.isNotEmpty) {
+      bool success = await _userService.addEventToFavorites(token, event.id);
+      if (success) {
+        _favoriteEventIds.add(event.id);
+        _favoriteEvents.add(POI(
+          eventID: event.id,
+          name: event.name,
+          startDate: event.startDate ?? '',
+          endDate: event.endDate ?? '',
+          type: 'event',
+          validationStatus: event.status,
+        ));
         notifyListeners();
       }
     }
   }
 
   // Supprimer un événement des favoris
-  Future<void> removeFromFavorites(POI event) async {
+  Future<void> removeFromFavorites(dynamic event) async {
     String? token = await _authProvider.getIdToken();
-    if (token != null) {
-      bool success = await _userService.removeEventFromFavorites(token, event.eventID);
+    String eventId = event is POI ? event.eventID : (event is Event ? event.id : '');
+
+    if (token != null && eventId.isNotEmpty) {
+      bool success = await _userService.removeEventFromFavorites(token, eventId);
       if (success) {
-        _favoriteEventIds.remove(event.eventID);
-        _favoriteEvents.removeWhere((e) => e.eventID == event.eventID); // Supprimer l'événement de la liste
+        _favoriteEventIds.remove(eventId);
+        _favoriteEvents.removeWhere((e) {
+          if (e is Event) {
+            return (e as Event).id == eventId; // Cast explicite ajouté ici
+          } else if (e is POI) {
+            return e.eventID == eventId;
+          }
+          return false;
+        });
+
+        notifyListeners();
+      }
+    }
+  }
+
+  // Supprimer un événement (Native Event) des favoris
+  Future<void> removeEventFromFavorites(Event event) async {
+    String? token = await _authProvider.getIdToken();
+    if (token != null && event.id.isNotEmpty) {
+      bool success = await _userService.removeEventFromFavorites(token, event.id);
+      if (success) {
+        _favoriteEventIds.remove(event.id);
+        _favoriteEvents.removeWhere((e) => e is POI ? e.eventID == event.id : false);
         notifyListeners();
       }
     }
@@ -214,6 +268,7 @@ class EventNotifier extends ChangeNotifier {
   void resetPagination() {
     _currentPage = 1;
     _events = [];
+    _nativeEvents = [];
     _hasMoreEvents = true;
     notifyListeners();
   }

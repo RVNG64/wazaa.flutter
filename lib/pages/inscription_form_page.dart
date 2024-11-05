@@ -1,12 +1,19 @@
+// lib/pages/inscription_form_page.dart
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'inscription_page.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../services/firebase_service.dart';
 
 class InscriptionFormPage extends StatefulWidget {
+  final String selectedRole;
+
   const InscriptionFormPage({
     Key? key,
+    required this.selectedRole,
   }) : super(key: key);
 
   @override
@@ -21,6 +28,9 @@ class _InscriptionFormPageState extends State<InscriptionFormPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _motDePasseController = TextEditingController();
   final TextEditingController _confirmerController = TextEditingController();
+  
+  // Contrôleurs supplémentaires pour les organisateurs
+  final TextEditingController _companyNameController = TextEditingController();
 
   final _formKey = GlobalKey<FormState>(); // Clé globale pour la validation du formulaire
   final ValueNotifier<bool> _isLoading = ValueNotifier(false); // Utilisation de ValueNotifier pour le loader
@@ -32,6 +42,7 @@ class _InscriptionFormPageState extends State<InscriptionFormPage> {
   final ValueNotifier<bool> _hasInteractedWithEmail = ValueNotifier(false);
   final ValueNotifier<bool> _hasInteractedWithMotDePasse = ValueNotifier(false);
   final ValueNotifier<bool> _hasInteractedWithConfirmer = ValueNotifier(false);
+  final ValueNotifier<bool> _hasInteractedWithCompanyName = ValueNotifier(false);
 
   @override
   void dispose() {
@@ -42,6 +53,7 @@ class _InscriptionFormPageState extends State<InscriptionFormPage> {
     _emailController.dispose();
     _motDePasseController.dispose();
     _confirmerController.dispose();
+    _companyNameController.dispose();
     _isLoading.dispose();
     _hasInteractedWithNom.dispose();
     _hasInteractedWithPrenom.dispose();
@@ -49,6 +61,7 @@ class _InscriptionFormPageState extends State<InscriptionFormPage> {
     _hasInteractedWithEmail.dispose();
     _hasInteractedWithMotDePasse.dispose();
     _hasInteractedWithConfirmer.dispose();
+    _hasInteractedWithCompanyName.dispose();
     super.dispose();
   }
 
@@ -60,8 +73,21 @@ class _InscriptionFormPageState extends State<InscriptionFormPage> {
     return false;
   }
 
+  void _showErrorMessage(String message) {
+    Future.delayed(Duration.zero, () {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.red,
+        ),
+      );
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    String pageTitle = widget.selectedRole == 'Organisateur' ? 'INSCRIPTION ORGANISATEUR' : 'INSCRIPTION';
+
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -111,10 +137,10 @@ class _InscriptionFormPageState extends State<InscriptionFormPage> {
 
                     const SizedBox(height: 30),
 
-                    // Titre "INSCRIPTION"
-                    const Text(
-                      'INSCRIPTION',
-                      style: TextStyle(
+                    // Titre de la page
+                    Text(
+                      pageTitle,
+                      style: const TextStyle(
                         fontFamily: 'Sora',
                         fontSize: 38,
                         fontWeight: FontWeight.w900,
@@ -124,101 +150,68 @@ class _InscriptionFormPageState extends State<InscriptionFormPage> {
                     const SizedBox(height: 30), // Espacement
 
                     // Champs du formulaire stylisés
-                    ValueListenableBuilder<bool>(
-                      valueListenable: _hasInteractedWithNom,
-                      builder: (context, hasInteracted, _) {
-                        return StyledTextField(
-                          label: 'Nom',
-                          controller: _nomController,
-                          placeholder: 'Dupont',
-                          validator: (value) => value!.isEmpty ? 'Veuillez entrer votre nom' : null,
-                          isFieldValid: hasInteracted && _isFieldValid(_nomController.text, (value) => value!.isEmpty ? 'Veuillez entrer votre nom' : null),
-                          onChanged: () {
-                            _hasInteractedWithNom.value = true;
-                          },
-                        );
-                      },
+                    // Champs supplémentaires pour les organisateurs
+                    if (widget.selectedRole == 'Organisateur') ...[
+                      _buildTextField(
+                        label: 'Organisation',
+                        controller: _companyNameController,
+                        placeholder: 'Nom de votre organisation',
+                        validator: (value) => value!.isEmpty ? 'Veuillez entrer le nom de votre organisation' : null,
+                        hasInteractedNotifier: _hasInteractedWithCompanyName,
+                      ),
+                    ],
+
+                    // Champs communs
+                    _buildTextField(
+                      label: 'Nom',
+                      controller: _nomController,
+                      placeholder: 'Dupont',
+                      validator: (value) => value!.isEmpty ? 'Veuillez entrer votre nom' : null,
+                      hasInteractedNotifier: _hasInteractedWithNom,
                     ),
-                    ValueListenableBuilder<bool>(
-                      valueListenable: _hasInteractedWithPrenom,
-                      builder: (context, hasInteracted, _) {
-                        return StyledTextField(
-                          label: 'Prénom',
-                          controller: _prenomController,
-                          placeholder: 'Adrien',
-                          validator: (value) => value!.isEmpty ? 'Veuillez entrer votre prénom' : null,
-                          isFieldValid: hasInteracted && _isFieldValid(_prenomController.text, (value) => value!.isEmpty ? 'Veuillez entrer votre prénom' : null),
-                          onChanged: () {
-                            _hasInteractedWithPrenom.value = true;
-                          },
-                        );
-                      },
+                    _buildTextField(
+                      label: 'Prénom',
+                      controller: _prenomController,
+                      placeholder: 'Adrien',
+                      validator: (value) => value!.isEmpty ? 'Veuillez entrer votre prénom' : null,
+                      hasInteractedNotifier: _hasInteractedWithPrenom,
                     ),
-                    ValueListenableBuilder<bool>(
-                      valueListenable: _hasInteractedWithTelephone,
-                      builder: (context, hasInteracted, _) {
-                        return StyledTextField(
-                          label: 'Téléphone',
-                          controller: _telephoneController,
-                          placeholder: '0601020304',
-                          validator: (value) => value!.length == 10 ? null : 'Numéro de téléphone invalide',
-                          isFieldValid: hasInteracted && _isFieldValid(_telephoneController.text, (value) => value!.length == 10 ? null : 'Numéro de téléphone invalide'),
-                          onChanged: () {
-                            _hasInteractedWithTelephone.value = true;
-                          },
-                        );
-                      },
+                    _buildTextField(
+                      label: 'Téléphone',
+                      controller: _telephoneController,
+                      placeholder: '0601020304',
+                      validator: (value) => value!.length == 10 ? null : 'Numéro de téléphone invalide',
+                      hasInteractedNotifier: _hasInteractedWithTelephone,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly, // Empêche l'entrée de lettres
+                      ],
                     ),
-                    ValueListenableBuilder<bool>(
-                      valueListenable: _hasInteractedWithEmail,
-                      builder: (context, hasInteracted, _) {
-                        return StyledTextField(
-                          label: 'E-mail',
-                          controller: _emailController,
-                          placeholder: 'contact@wazaa.app',
-                          validator: (value) => (value!.contains('@') && value.contains('.'))
-                              ? null
-                              : 'Veuillez entrer un email valide',
-                          isFieldValid: hasInteracted && _isFieldValid(_emailController.text, (value) => (value!.contains('@') && value.contains('.')) ? null : 'Veuillez entrer un email valide'),
-                          onChanged: () {
-                            _hasInteractedWithEmail.value = true;
-                          },
-                        );
-                      },
+                    _buildTextField(
+                      label: 'E-mail',
+                      controller: _emailController,
+                      placeholder: 'hello@wazaa.app',
+                      validator: (value) => (value!.contains('@') && value.contains('.'))
+                          ? null
+                          : 'Veuillez entrer un email valide',
+                      hasInteractedNotifier: _hasInteractedWithEmail,
                     ),
-                    ValueListenableBuilder<bool>(
-                      valueListenable: _hasInteractedWithMotDePasse,
-                      builder: (context, hasInteracted, _) {
-                        return StyledTextField(
-                          label: 'Mot de passe',
-                          controller: _motDePasseController,
-                          obscureText: true,
-                          placeholder: '************',
-                          validator: (value) =>
-                              value!.length >= 6 ? null : 'Le mot de passe doit comporter au moins 6 caractères',
-                          isFieldValid: hasInteracted && _isFieldValid(_motDePasseController.text, (value) => value!.length >= 6 ? null : 'Le mot de passe doit comporter au moins 6 caractères'),
-                          onChanged: () {
-                            _hasInteractedWithMotDePasse.value = true;
-                          },
-                        );
-                      },
+                    _buildTextField(
+                      label: 'Mot de passe',
+                      controller: _motDePasseController,
+                      obscureText: true,
+                      placeholder: '************',
+                      validator: (value) =>
+                          value!.length >= 6 ? null : 'Le mot de passe doit comporter au moins 6 caractères',
+                      hasInteractedNotifier: _hasInteractedWithMotDePasse,
                     ),
-                    ValueListenableBuilder<bool>(
-                      valueListenable: _hasInteractedWithConfirmer,
-                      builder: (context, hasInteracted, _) {
-                        return StyledTextField(
-                          label: 'Confirmer',
-                          controller: _confirmerController,
-                          obscureText: true,
-                          placeholder: '************',
-                          validator: (value) =>
-                              value == _motDePasseController.text ? null : 'Les mots de passe ne correspondent pas',
-                          isFieldValid: hasInteracted && _isFieldValid(_confirmerController.text, (value) => value == _motDePasseController.text ? null : 'Les mots de passe ne correspondent pas'),
-                          onChanged: () {
-                            _hasInteractedWithConfirmer.value = true;
-                          },
-                        );
-                      },
+                    _buildTextField(
+                      label: 'Confirmer',
+                      controller: _confirmerController,
+                      obscureText: true,
+                      placeholder: '************',
+                      validator: (value) =>
+                          value == _motDePasseController.text ? null : 'Les mots de passe ne correspondent pas',
+                      hasInteractedNotifier: _hasInteractedWithConfirmer,
                     ),
 
                     const SizedBox(height: 20),
@@ -231,48 +224,7 @@ class _InscriptionFormPageState extends State<InscriptionFormPage> {
                           return isLoading
                               ? const CircularProgressIndicator() // Affiche un loader si l'inscription est en cours
                               : OutlinedButton(
-                                  onPressed: () async {
-                                    if (_formKey.currentState!.validate()) {
-                                      _isLoading.value = true;
-                                      try {
-                                        final firebaseService = FirebaseService();
-                                        final user = await firebaseService.signUpWithEmail(
-                                          _emailController.text,
-                                          _motDePasseController.text,
-                                        );
-
-                                        if (user != null) {
-                                          final response = await http.post(
-                                            Uri.parse('https://wazaapp-backend-e95231584d01.herokuapp.com/auth/signup'),
-                                            headers: {'Content-Type': 'application/json'},
-                                            body: jsonEncode({
-                                              'firebaseId': user.uid,
-                                              'firstName': _prenomController.text,
-                                              'lastName': _nomController.text,
-                                              'email': _emailController.text,
-                                              'phone': _telephoneController.text,
-                                              'profilePicture': null,
-                                            }),
-                                          );
-
-                                          if (response.statusCode == 201) {
-                                            Navigator.pushReplacement(
-                                              context,
-                                              MaterialPageRoute(
-                                                builder: (context) => InscriptionPage(userName: _prenomController.text),
-                                              ),
-                                            );
-                                          } else {
-                                            print('Erreur lors de l\'inscription backend: ${response.body}');
-                                          }
-                                        }
-                                      } catch (e) {
-                                        print('Erreur lors de l\'inscription: $e');
-                                      } finally {
-                                        _isLoading.value = false;
-                                      }
-                                    }
-                                  },
+                                  onPressed: _handleSignUp,
                                   style: OutlinedButton.styleFrom(
                                     padding: const EdgeInsets.symmetric(horizontal: 100, vertical: 20),
                                     shape: RoundedRectangleBorder(
@@ -303,79 +255,140 @@ class _InscriptionFormPageState extends State<InscriptionFormPage> {
       ),
     );
   }
-}
 
-// Widget séparé pour les champs du formulaire avec icône de validation
-class StyledTextField extends StatelessWidget {
-  final String label;
-  final TextEditingController controller;
-  final bool obscureText;
-  final String? placeholder;
-  final String? Function(String?)? validator;
-  final bool isFieldValid;
-  final VoidCallback? onChanged;
+  // Méthode pour construire les champs de texte
+  Widget _buildTextField({
+    required String label,
+    required TextEditingController controller,
+    bool obscureText = false,
+    String? placeholder,
+    String? Function(String?)? validator,
+    required ValueNotifier<bool> hasInteractedNotifier,
+    List<TextInputFormatter>? inputFormatters,
+  }) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: hasInteractedNotifier,
+      builder: (context, hasInteracted, _) {
+        bool isFieldValid = hasInteracted && _isFieldValid(controller.text, validator);
 
-  const StyledTextField({
-    Key? key,
-    required this.label,
-    required this.controller,
-    this.obscureText = false,
-    this.placeholder,
-    this.validator,
-    required this.isFieldValid,
-    this.onChanged,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(
-              fontFamily: 'Sora',
-              fontSize: 17,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  fontFamily: 'Sora',
+                  fontSize: 17,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              TextFormField(
+                controller: controller,
+                obscureText: obscureText,
+                style: const TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 16,
+                  color: Colors.white,
+                ),
+                decoration: InputDecoration(
+                  hintText: placeholder,
+                  hintStyle: const TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 15,
+                    color: Colors.grey,
+                  ),
+                  enabledBorder: const UnderlineInputBorder(
+                    borderSide: BorderSide(color: Colors.white),
+                  ),
+                  focusedBorder: const UnderlineInputBorder(
+                    borderSide: BorderSide(color: Colors.white),
+                  ),
+                  suffixIcon: isFieldValid
+                      ? const Icon(Icons.check_circle, color: Colors.green)
+                      : null,
+                ),
+                validator: validator,
+                onChanged: (_) {
+                  hasInteractedNotifier.value = true;
+                },
+                inputFormatters: inputFormatters,
+              ),
+            ],
           ),
-          TextFormField(
-            controller: controller,
-            obscureText: obscureText,
-            style: const TextStyle(
-              fontFamily: 'Poppins',
-              fontSize: 16,
-              color: Colors.white,
-            ),
-            decoration: InputDecoration(
-              hintText: placeholder,
-              hintStyle: const TextStyle(
-                fontFamily: 'Poppins',
-                fontSize: 15,
-                color: Colors.grey,
-              ),
-              enabledBorder: const UnderlineInputBorder(
-                borderSide: BorderSide(color: Colors.white),
-              ),
-              focusedBorder: const UnderlineInputBorder(
-                borderSide: BorderSide(color: Colors.white),
-              ),
-              suffixIcon: isFieldValid
-                  ? const Icon(Icons.check_circle, color: Colors.green)
-                  : null,
-            ),
-            validator: validator, // Validation incluse
-            onChanged: (_) {
-              if (onChanged != null) {
-                onChanged!();
-              }
-            },
-          ),
-        ],
-      ),
+        );
+      },
     );
+  }
+
+  // Méthode pour gérer l'inscription
+  Future<void> _handleSignUp() async {
+    if (_formKey.currentState!.validate()) {
+      _isLoading.value = true;
+      try {
+        final firebaseService = FirebaseService();
+        final user = await firebaseService.signUpWithEmail(
+          _emailController.text,
+          _motDePasseController.text,
+        );
+
+        if (user != null) {
+          // Construire le corps de la requête
+          Map<String, dynamic> requestBody = {
+            'firebaseId': user.uid,
+            'firstName': _prenomController.text,
+            'lastName': _nomController.text,
+            'email': _emailController.text,
+            'phone': _telephoneController.text,
+            'profilePicture': null,
+          };
+
+          // Déterminer l'endpoint en fonction du rôle
+          String endpoint = 'https://wazaapp-backend-e95231584d01.herokuapp.com/auth/signup';
+
+          // Ajouter des champs spécifiques aux organisateurs
+          if (widget.selectedRole == 'Organisateur') {
+            requestBody.addAll({
+              'organizationName': _companyNameController.text,
+            });
+            // Changer l'endpoint pour les organisateurs
+            endpoint = 'https://wazaapp-backend-e95231584d01.herokuapp.com/auth/signup/organizer';
+          } else {
+            // Ajouter le rôle pour les utilisateurs
+            requestBody['role'] = 'user';
+          }
+
+          final response = await http.post(
+            Uri.parse(endpoint),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode(requestBody),
+          );
+
+          if (response.statusCode == 201) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => InscriptionPage(userName: _prenomController.text),
+              ),
+            );
+          } else {
+            _showErrorMessage('Erreur lors de l\'inscription backend : ${response.body}');
+          }
+        }
+      } on FirebaseAuthException catch (e) {
+        // Vérifiez si l'erreur correspond à une adresse e-mail déjà utilisée
+        if (e.code == 'email-already-in-use') {
+          _showErrorMessage('Cette adresse e-mail est déjà utilisée. Veuillez en utiliser une autre.');
+        } else {
+          _showErrorMessage('Erreur lors de l\'inscription : ${e.message}');
+        }
+      } catch (e) {
+        _showErrorMessage('Erreur inconnue : $e');
+      } finally {
+        _isLoading.value = false;
+      }
+    }
   }
 }
