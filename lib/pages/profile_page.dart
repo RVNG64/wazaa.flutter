@@ -3,9 +3,11 @@ import 'profile_infos.dart';
 import 'invite_friends.dart';
 import 'faq_page.dart';
 import 'contact_page.dart';
+import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'login_page.dart';
+import '../widgets/theme_notifier.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({Key? key}) : super(key: key);
@@ -20,12 +22,14 @@ class ProfilePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context); // Récupérer le thème actuel
+
     return Scaffold(
       // 3. Changer le fond de la page en gris clair
-      backgroundColor: Colors.grey[100],
+      backgroundColor: theme.scaffoldBackgroundColor, 
       appBar: AppBar(
         toolbarHeight: 85, // Augmenter la hauteur de l'AppBar
-        backgroundColor: Colors.white,
+        backgroundColor: theme.appBarTheme.backgroundColor,
         elevation: 0,
         leading: Padding(
           padding: const EdgeInsets.only(left: 15, top: 10),
@@ -59,15 +63,15 @@ class ProfilePage extends StatelessWidget {
           ),
         ),
         centerTitle: true,
-        title: const Padding(
+        title: Padding(
           padding: EdgeInsets.only(top: 10), // 2. Ajouter plus de marge au-dessus du titre
           child: Text(
-            'REGLAGES',
+            'Réglages',
             style: TextStyle(
               fontFamily: 'Sora',
               fontSize: 24,
               fontWeight: FontWeight.w900,
-              color: Colors.black,
+              color: theme.appBarTheme.titleTextStyle?.color ?? Colors.white,
             ),
           ),
         ),
@@ -119,11 +123,27 @@ class ProfilePage extends StatelessWidget {
                   },
                 ),
                 const SizedBox(height: 16),
+
+                /* Option pour basculer entre le Light et le Dark Mode
+                Consumer<ThemeNotifier>(
+                  builder: (context, themeNotifier, child) {
+                    return SwitchListTile(
+                      title: const Text('Mode sombre'),
+                      value: themeNotifier.isDarkMode,
+                      onChanged: (val) {
+                        themeNotifier.toggleTheme(); // Basculer le thème
+                      },
+                    );
+                  },
+                ),
+                const SizedBox(height: 16), */
+
                 ListTile(
                   title: const Text('Version 1.0.0'),
                   onTap: () {},
                 ),
                 const SizedBox(height: 60),
+
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [

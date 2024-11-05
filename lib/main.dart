@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:logger/logger.dart';
@@ -12,6 +13,7 @@ import 'models/poi_adapter.dart';
 import 'models/poi_infos/location_adapter.dart';
 import 'models/poi_infos/price_options_adapter.dart';
 import 'models/poi_infos/attendance_entry_adapter.dart';
+import './widgets/theme_notifier.dart';
 
 final logger = Logger(); // Utilisation de Logger
 
@@ -28,11 +30,20 @@ void main() async {
 
     await Firebase.initializeApp();
 
+    try {
+      print("Chargement du fichier .env...");
+      await dotenv.load(fileName: ".env");
+      print("Fichier .env chargé avec succès");
+    } catch (e) {
+      print("Erreur lors du chargement du fichier .env: $e");
+    }
+    
     runApp(
       MultiProvider(
         providers: [
           ChangeNotifierProvider(create: (context) => AuthProvider()), 
           ChangeNotifierProvider(create: (context) => EventNotifier()),
+          ChangeNotifierProvider(create: (context) => ThemeNotifier()),
         ],
         child: const MyApp(),
       ),
@@ -48,26 +59,49 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Charger les favoris après le démarrage de l'application
-    final eventNotifier = Provider.of<EventNotifier>(context, listen: false);
-    eventNotifier.loadFavorites();
-
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'WAZAA',
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: const [
-        Locale('fr'),
-      ],
-      locale: const Locale('fr'),
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
-      home: SplashScreen(), // Écran initial
+    return Consumer<ThemeNotifier>(
+      builder: (context, themeNotifier, child) {
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          title: 'WAZAA',
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: const [Locale('fr')],
+          locale: const Locale('fr'),
+          theme: ThemeData(
+            primarySwatch: Colors.blue,
+            brightness: Brightness.light,
+            scaffoldBackgroundColor: Colors.white, // Fond des Scaffold pour le mode clair
+            appBarTheme: const AppBarTheme(
+              backgroundColor: Colors.white, // Couleur de l'AppBar en mode clair
+              iconTheme: IconThemeData(color: Colors.black),
+              titleTextStyle: TextStyle(color: Colors.black),
+            ),
+            textTheme: const TextTheme(
+              bodyLarge: TextStyle(color: Colors.black), // Utilisation de bodyLarge au lieu de bodyText1
+              bodyMedium: TextStyle(color: Colors.black), // Utilisation de bodyMedium au lieu de bodyText2
+            ),
+          ),
+          darkTheme: ThemeData(
+            brightness: Brightness.dark,
+            scaffoldBackgroundColor: Colors.black, // Fond des Scaffold pour le mode sombre
+            appBarTheme: const AppBarTheme(
+              backgroundColor: Colors.black, // Couleur de l'AppBar en mode sombre
+              iconTheme: IconThemeData(color: Colors.white),
+              titleTextStyle: TextStyle(color: Colors.white),
+            ),
+            textTheme: const TextTheme(
+              bodyLarge: TextStyle(color: Colors.white), // Utilisation de bodyLarge au lieu de bodyText1
+              bodyMedium: TextStyle(color: Colors.white), // Utilisation de bodyMedium au lieu de bodyText2
+            ),
+          ),
+          themeMode: themeNotifier.isDarkMode ? ThemeMode.dark : ThemeMode.light, // Basé sur ThemeNotifier
+          home: SplashScreen(),
+        );
+      },
     );
   }
 }

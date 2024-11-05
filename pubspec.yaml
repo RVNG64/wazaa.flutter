@@ -34,6 +34,7 @@ dependencies:
     sdk: flutter
   flutter_map: ^7.0.2
   flutter_map_marker_popup: ^7.0.0
+  flutter_dotenv: ^5.2.1
   mapbox_gl: ^0.16.0
   google_fonts: ^6.2.1
   latlong2: ^0.9.1
@@ -68,10 +69,15 @@ dependencies:
   cached_network_image: ^3.4.1
   shared_preferences: ^2.3.2
   showcaseview: ^3.0.0
+  multi_select_flutter: ^4.1.3
+  simple_animations: ^5.0.2
+  geolocator: ^13.0.1
+  youtube_player_flutter: ^9.1.1
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
+  firebase_dynamic_links: ^6.0.8
 
 dev_dependencies:
   flutter_test:
@@ -125,6 +131,7 @@ flutter:
     - lib/assets/images/nike-ad2.jpg
     - lib/assets/images/nikeskate-ad.webp
     - lib/assets/images/sony-ad.jpg
+    - .env
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

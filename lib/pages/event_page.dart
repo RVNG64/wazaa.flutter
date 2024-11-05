@@ -8,6 +8,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:provider/provider.dart';
 import '../services/event_notifier.dart';
 import '../widgets/advertisement_banner.dart';
+import '../widgets/recommended_events_section.dart';
 import 'dart:ui';
 
 // Function to format the price options
@@ -60,14 +61,16 @@ class EventPage extends StatelessWidget {
     } catch (_) {}
 
     // Formatting the times
-    String formattedStartTime = 'Heure inconnue';
+    String formattedStartTime = 'Non indiqué';
     String formattedEndTime = '';
 
     if (event.startTime != null && event.startTime != 'Heure inconnue') {
       try {
         DateTime startTime = DateTime.parse(event.startDate + ' ' + event.startTime!);
         formattedStartTime = DateFormat('HH:mm').format(startTime);
-      } catch (_) {}
+      } catch (_) {
+        formattedStartTime = 'Non indiqué'; 
+      }
     }
 
     if (event.endTime != null && event.endTime != 'Heure de fin inconnue') {
@@ -248,91 +251,93 @@ class EventPage extends StatelessWidget {
                       ),
                       const SizedBox(height: 24),
 
-                      // Display dates and times side by side
+                      // Affichage des dates et des heures côte à côte avec un design moderne
                       Row(
                         children: [
                           Expanded(
                             child: Container(
-                              padding: const EdgeInsets.all(10),
+                              padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: Colors.grey[200],
-                                borderRadius: BorderRadius.circular(12),
-                                boxShadow: const [
+                                gradient: LinearGradient(
+                                  colors: [Colors.white, Colors.blueGrey.shade50], // Arrière-plan en dégradé
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: Colors.blueGrey.shade100,
+                                  width: 1.5,
+                                ),
+                                boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black12,
-                                    blurRadius: 4,
+                                    color: Colors.blueGrey.withOpacity(0.1),
+                                    blurRadius: 8,
                                     spreadRadius: 2,
+                                    offset: Offset(0, 5),
                                   ),
                                 ],
                               ),
                               child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center, // Centrer les éléments verticalement
-                                crossAxisAlignment: CrossAxisAlignment.center, // Centrer les éléments horizontalement
+                                mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.center, // Centrer l'icône et le texte horizontalement
-                                    children: [
-                                      const Icon(Icons.calendar_today, size: 18, color: Colors.black),
-                                      const SizedBox(width: 8),
-                                      Flexible(
-                                        child: Text(
-                                          formattedStartDate == formattedEndDate
-                                              ? formattedStartDate
-                                              : 'Du $formattedStartDate au $formattedEndDate',
-                                          style: const TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w600,
-                                            color: Colors.black87,
-                                          ),
-                                          textAlign: TextAlign.center, // Centrer le texte
-                                          overflow: TextOverflow.ellipsis, // Éviter l'overflow en réduisant le texte
-                                        ),
-                                      ),
-                                    ],
+                                  Icon(Icons.calendar_today, size: 22, color: Colors.blueGrey.shade600),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    formattedStartDate == formattedEndDate
+                                        ? formattedStartDate
+                                        : 'Du $formattedStartDate au $formattedEndDate',
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.blueGrey.shade800,
+                                      fontFamily: 'Poppins',
+                                    ),
+                                    textAlign: TextAlign.center,
                                   ),
                                 ],
                               ),
                             ),
                           ),
-                          const SizedBox(width: 16),  // Spacing between the two cards
+                          const SizedBox(width: 8), // Espacement entre les deux cartes
                           Expanded(
                             child: Container(
-                              padding: const EdgeInsets.all(10),
+                              padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: Colors.grey[200],
-                                borderRadius: BorderRadius.circular(12),
-                                boxShadow: const [
+                                gradient: LinearGradient(
+                                  colors: [Colors.white, Colors.blueGrey.shade50], // Arrière-plan en dégradé
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: Colors.blueGrey.shade100,
+                                  width: 1.5,
+                                ),
+                                boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black12,
-                                    blurRadius: 4,
+                                    color: Colors.blueGrey.withOpacity(0.1),
+                                    blurRadius: 8,
                                     spreadRadius: 2,
+                                    offset: Offset(0, 5),
                                   ),
                                 ],
                               ),
                               child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center, // Centrer les éléments verticalement
-                                crossAxisAlignment: CrossAxisAlignment.center, // Centrer les éléments horizontalement
+                                mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.center, // Centrer l'icône et le texte horizontalement
-                                    children: [
-                                      const Icon(Icons.access_time, size: 18, color: Colors.black),
-                                      const SizedBox(width: 8),
-                                      Flexible(
-                                        child: Text(
-                                          formattedEndTime.isNotEmpty
-                                              ? '$formattedStartTime - $formattedEndTime'
-                                              : 'À partir de $formattedStartTime',
-                                          style: const TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w600,
-                                            color: Colors.black87,
-                                          ),
-                                          textAlign: TextAlign.center, // Centrer le texte
-                                          overflow: TextOverflow.ellipsis, // Éviter l'overflow en réduisant le texte
-                                        ),
-                                      ),
-                                    ],
+                                  Icon(Icons.access_time, size: 22, color: Colors.blueGrey.shade600),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    formattedEndTime.isNotEmpty
+                                        ? '$formattedStartTime - $formattedEndTime'
+                                        : (formattedStartTime == 'Non indiqué' ? 'Non indiqué' : 'À partir de $formattedStartTime'),
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.blueGrey.shade800,
+                                      fontFamily: 'Poppins',
+                                    ),
+                                    textAlign: TextAlign.center,
                                   ),
                                 ],
                               ),
@@ -425,17 +430,27 @@ class EventPage extends StatelessWidget {
                       ),
                       const SizedBox(height: 16),
 
-                      // Section stylisée pour les tarifs et moyens de paiement
+                      // Section Tarifs et moyens de paiement
                       Container(
-                        padding: const EdgeInsets.all(16),
+                        margin: const EdgeInsets.symmetric(vertical: 16.0),
+                        padding: const EdgeInsets.all(20.0),
                         decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
+                          gradient: LinearGradient(
+                            colors: [Colors.white, Colors.grey.shade50], // Fond légèrement dégradé
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: Colors.grey.shade300, // Bordure subtile
+                            width: 1.5,
+                          ),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black12,
-                              blurRadius: 6,
-                              spreadRadius: 1,
+                              color: Colors.grey.withOpacity(0.2),
+                              blurRadius: 15,
+                              spreadRadius: 2,
+                              offset: Offset(0, 8), // Ombre plus longue pour effet de profondeur
                             ),
                           ],
                         ),
@@ -443,59 +458,83 @@ class EventPage extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
-                              crossAxisAlignment: CrossAxisAlignment.center,
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Icon(Icons.monetization_on, color: Colors.black, size: 24),  // Icône pour le tarif
-                                const SizedBox(width: 10),
-                                Text(
-                                  'Tarif:',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.black87,
-                                    fontFamily: 'Poppins',
-                                  ),
+                                // Section Tarifs
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Icon(Icons.monetization_on_outlined, size: 20, color: Colors.blueGrey),
+                                        SizedBox(width: 8),
+                                        Text(
+                                          'Tarif',
+                                          style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.w700,
+                                            color: Colors.blueGrey.shade800,
+                                            fontFamily: 'Poppins',
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    SizedBox(height: 8),
+                                    Text(
+                                      event.priceOptions != null ? formatPriceOptions(event.priceOptions!) : 'Non spécifié',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontFamily: 'Poppins',
+                                        color: Colors.blueGrey.shade600,
+                                      ),
+                                    ),
+                                  ],
                                 ),
+                                // Ajout d'une icône ou d'un détail visuel subtil
+                                Icon(Icons.euro_symbol, size: 24, color: Colors.blueGrey.shade300),
                               ],
                             ),
-                            const SizedBox(height: 10),
-                            Text(
-                              event.priceOptions != null
-                                  ? formatPriceOptions(event.priceOptions!)
-                                  : 'Non spécifié',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontFamily: 'Poppins',
-                                color: Colors.grey[800],
-                              ),
+                            Divider(
+                              height: 32,
+                              color: Colors.blueGrey.shade100,
+                              thickness: 1,
                             ),
-                            const SizedBox(height: 20),
 
-                            // Moyens de paiement
+                            // Section Moyens de paiement
                             Row(
-                              crossAxisAlignment: CrossAxisAlignment.center,
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Icon(Icons.payment, color: Colors.black, size: 24),  // Icône pour les paiements
-                                const SizedBox(width: 10),
-                                Text(
-                                  'Moyens de paiement acceptés:',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.black87,
-                                    fontFamily: 'Poppins',
-                                  ),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Icon(Icons.payment_outlined, size: 20, color: Colors.blueGrey),
+                                        SizedBox(width: 8),
+                                        Text(
+                                          'Moyens de paiement',
+                                          style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.w700,
+                                            color: Colors.blueGrey.shade800,
+                                            fontFamily: 'Poppins',
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    SizedBox(height: 8),
+                                    Text(
+                                      event.acceptedPayments?.join(", ") ?? 'Non spécifié',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontFamily: 'Poppins',
+                                        color: Colors.blueGrey.shade600,
+                                      ),
+                                    ),
+                                  ],
                                 ),
+                                Icon(Icons.credit_card, size: 24, color: Colors.blueGrey.shade300),
                               ],
-                            ),
-                            const SizedBox(height: 10),
-                            Text(
-                              event.acceptedPayments?.join(", ") ?? 'Non spécifié',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontFamily: 'Poppins',
-                                color: Colors.grey[800],
-                              ),
                             ),
                           ],
                         ),
@@ -509,8 +548,13 @@ class EventPage extends StatelessWidget {
 
                 // Bannière publicitaire en bas de l'écran
                 AdvertisementBanner(),
+
+                //const SizedBox(height: 20),
+
+                // Section des événements recommandés
+                RecommendedEventsSection(currentEvent: event),
                 
-                const SizedBox(height: 20),
+                //const SizedBox(height: 20),
               ],
             ),
           ),

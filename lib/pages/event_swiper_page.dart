@@ -48,6 +48,11 @@ class _EventSwiperPageState extends State<EventSwiperPage> with SingleTickerProv
       parent: _animationController,
       curve: Curves.elasticOut,
     );
+
+    // Afficher le message de bienvenue dès le chargement
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _showWelcomeDialog();
+    });
   }
 
   @override
@@ -75,6 +80,172 @@ class _EventSwiperPageState extends State<EventSwiperPage> with SingleTickerProv
         });
       });
     }
+  }
+
+  // Fonction pour afficher le message de bienvenue
+  void _showWelcomeDialog() {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withOpacity(0.7), // Assombrit l'arrière-plan avec une opacité de 50%
+      builder: (context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(25),
+          ),
+          backgroundColor: Colors.transparent, // Fond transparent pour laisser apparaître le dégradé
+          child: Stack(
+            children: [
+              // Fond dégradé personnalisé
+              Container(
+                padding: const EdgeInsets.all(20.0),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(25),
+                  gradient: LinearGradient(
+                    colors: [
+                      Color(0xFF205893), 
+                      Color(0xFF16141E),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.6),
+                      blurRadius: 20,
+                      spreadRadius: 5,
+                      offset: Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Titre principal avec effet moderne
+                    Text(
+                      'NEXT !',
+                      style: TextStyle(
+                        fontSize: 26,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        fontFamily: 'Sora',
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    
+                    // Texte de présentation
+                    Text(
+                      "Comment ça marche ?",
+                      style: TextStyle(
+                        fontSize: 18,
+                        color: Colors.white70,
+                        fontFamily: 'Poppins',
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Explication pour le swipe gauche
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.arrow_back_ios_new, color: Colors.redAccent, size: 36, shadows: [
+                          Shadow(
+                            color: Colors.black54,
+                            blurRadius: 6,
+                            offset: Offset(2, 2),
+                          )
+                        ]),
+                        const SizedBox(width: 10),
+                        Flexible(
+                          child: Text(
+                            'Swipe gauche pour passer',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.white,
+                              fontFamily: 'Poppins',
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Explication pour le swipe droite
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            'Swipe droite pour 🤍',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.white,
+                              fontFamily: 'Poppins',
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Icon(Icons.arrow_forward_ios, color: Colors.greenAccent, size: 36, shadows: [
+                          Shadow(
+                            color: Colors.black54,
+                            blurRadius: 6,
+                            offset: Offset(2, 2),
+                          )
+                        ]),
+                      ],
+                    ),
+                    const SizedBox(height: 30),
+
+                    // Bouton "C'est parti !" avec dégradé
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Container(
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [
+                              Color(0xFF83402F), // Couleur gauche
+                              Color(0xFFEA603E), // Couleur droite
+                            ],
+                            begin: Alignment.centerLeft,
+                            end: Alignment.centerRight,
+                          ),
+                          borderRadius: BorderRadius.circular(50),
+                        ),
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.of(context).pop(); // Fermer le message
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            shadowColor: Colors.transparent,
+                            padding: const EdgeInsets.symmetric(vertical: 20),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(50),
+                            ),
+                          ),
+                          child: const Text(
+                            'C\'est parti !',
+                            style: TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 20,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   // Fonction pour annuler la suppression (via le bouton undo)
@@ -116,7 +287,7 @@ class _EventSwiperPageState extends State<EventSwiperPage> with SingleTickerProv
                 gradient: LinearGradient(
                   colors: [
                     Color(0xFF0A3D75), // Bleu plus sombre
-                    Colors.black
+                    Colors.black,
                   ],
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
@@ -157,7 +328,7 @@ class _EventSwiperPageState extends State<EventSwiperPage> with SingleTickerProv
             right: 0,
             child: Center(
               child: Text(
-                'WAZAA !',
+                'NEXT !',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 38,
@@ -211,8 +382,8 @@ class _EventSwiperPageState extends State<EventSwiperPage> with SingleTickerProv
                                 // Image de l'événement
                                 CachedNetworkImage(
                                   imageUrl: event.photoUrl != null && event.photoUrl!.isNotEmpty
-                                      ? event.photoUrl!  // Si l'URL est valide, on la charge
-                                      : '',  // Si l'URL est null ou vide, on met un placeholder vide
+                                      ? event.photoUrl! // Si l'URL est valide, on la charge
+                                      : '', // Si l'URL est null ou vide, on met un placeholder vide
                                   fit: BoxFit.cover,
                                   width: double.infinity,
                                   height: double.infinity,
@@ -375,6 +546,11 @@ class _EventSwiperPageState extends State<EventSwiperPage> with SingleTickerProv
                 ),
               ),
             ),
+        ],
+      ),
+    );
+  }
+}
 
           /* Bouton pour restaurer la dernière carte
           if (_lastRemovedEvent != null)
@@ -404,9 +580,9 @@ class _EventSwiperPageState extends State<EventSwiperPage> with SingleTickerProv
                   ),
                 ),
               ),
-            ), */
+            ),
         ],
       ),
     );
   }
-}
+} */
