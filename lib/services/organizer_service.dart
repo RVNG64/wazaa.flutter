@@ -5,7 +5,7 @@ import 'dart:convert';
 import '../models/organizer.dart';
 
 class OrganizerService {
-  final String baseUrl = 'https://wazaapp-backend-e95231584d01.herokuapp.com/auth';
+  final String baseUrl = 'http://10.0.2.2:3000/auth';
 
   Future<OrganizerModel?> getOrganizerInfo(String token) async {
     try {

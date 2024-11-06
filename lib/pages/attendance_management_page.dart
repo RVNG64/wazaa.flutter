@@ -38,7 +38,7 @@ class _AttendanceManagementPageState extends State<AttendanceManagementPage> {
 
   Future<void> _fetchAttendanceList() async {
     try {
-      final eventService = EventService('https://wazaapp-backend-e95231584d01.herokuapp.com'); // Fournir baseUrl
+      final eventService = EventService('http://10.0.2.2:3000'); // Fournir baseUrl
       List<Attendance> attendanceList = await eventService.getAttendanceList(widget.event.id);
       setState(() {
         _attendanceList = attendanceList;

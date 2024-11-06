@@ -14,7 +14,7 @@ class OrganizedEventsPage extends StatefulWidget {
 }
 
 class _OrganizedEventsPageState extends State<OrganizedEventsPage> {
-  final EventService _eventService = EventService('https://wazaapp-backend-e95231584d01.herokuapp.com');
+  final EventService _eventService = EventService('http://10.0.2.2:3000');
   List<Event> _organizedEvents = [];
   bool _isLoading = true;
 

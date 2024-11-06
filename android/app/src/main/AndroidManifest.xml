@@ -15,7 +15,7 @@
     <uses-permission android:name="com.google.android.gms.permission.AD_ID"/>
     
     <application
-        android:label="Wazaa : Événements locaux"
+        android:label="Wazaa"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:enableOnBackInvokedCallback="true">
@@ -37,7 +37,12 @@
             
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
+                <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.LAUNCHER"/>
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https"
+                    android:host="links.wazaa.app" />
             </intent-filter>
         </activity>
         

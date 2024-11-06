@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:intl/intl.dart';
+import 'package:firebase_dynamic_links/firebase_dynamic_links.dart';
 import 'package:wazaa_app/models/poi.dart';
 import 'package:wazaa_app/models/poi_infos/price_options.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:provider/provider.dart';
+import '../services/event_service.dart';
 import '../services/event_notifier.dart';
 import '../widgets/advertisement_banner.dart';
 import '../widgets/recommended_events_section.dart';
@@ -37,12 +39,44 @@ String formatPriceOptions(PriceOptions? priceOptions) {
 }
 
 class EventPage extends StatelessWidget {
-  final POI event;
+  final POI? event;
+  final String? eventId;
 
-  const EventPage({Key? key, required this.event}) : super(key: key);
+  const EventPage({Key? key, this.event, this.eventId})
+      : assert(event != null || eventId != null, 'Event ou eventId doit être fourni'),
+        super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    if (event == null && eventId != null) {
+      final eventService = Provider.of<EventService>(context, listen: false);
+
+      return FutureBuilder<POI>(
+        future: eventService.fetchEventById(eventId!),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            );
+          } else if (snapshot.hasError) {
+            return const Scaffold(
+              body: Center(child: Text('Erreur lors du chargement de l\'événement')),
+            );
+          } else if (!snapshot.hasData) {
+            return const Scaffold(
+              body: Center(child: Text('Événement introuvable')),
+            );
+          } else {
+            return buildEventPage(context, snapshot.data!);
+          }
+        },
+      );
+    }
+
+    return buildEventPage(context, event!);
+  }
+
+  Widget buildEventPage(BuildContext context, POI event) {
     final eventNotifier = Provider.of<EventNotifier>(context);
     final isFavorite = eventNotifier.isFavorite(event);
 
@@ -176,7 +210,7 @@ class EventPage extends StatelessWidget {
                       child: Row(
                         children: [
                           // Share icon with white circular background and shadow
-                          /*Container(
+                          Container(
                             width: 35,
                             height: 35,
                             decoration: BoxDecoration(
@@ -197,10 +231,10 @@ class EventPage extends StatelessWidget {
                               color: Colors.black,
                               onPressed: () {
                                 // Logique de partage
-                                _shareEvent(event);
+                                _shareEvent(context, event);
                               },
                             ),
-                          ), */
+                          ),
                           const SizedBox(width: 12),
                           FavoriteToggleIcon(event: event),
                         ],
@@ -431,114 +465,120 @@ class EventPage extends StatelessWidget {
                       const SizedBox(height: 16),
 
                       // Section Tarifs et moyens de paiement
-                      Container(
-                        margin: const EdgeInsets.symmetric(vertical: 16.0),
-                        padding: const EdgeInsets.all(20.0),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [Colors.white, Colors.grey.shade50], // Fond légèrement dégradé
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: Colors.grey.shade300, // Bordure subtile
-                            width: 1.5,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.grey.withOpacity(0.2),
-                              blurRadius: 15,
-                              spreadRadius: 2,
-                              offset: Offset(0, 8), // Ombre plus longue pour effet de profondeur
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                // Section Tarifs
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Icon(Icons.monetization_on_outlined, size: 20, color: Colors.blueGrey),
-                                        SizedBox(width: 8),
-                                        Text(
-                                          'Tarif',
-                                          style: TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.w700,
-                                            color: Colors.blueGrey.shade800,
-                                            fontFamily: 'Poppins',
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    SizedBox(height: 8),
-                                    Text(
-                                      event.priceOptions != null ? formatPriceOptions(event.priceOptions!) : 'Non spécifié',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontFamily: 'Poppins',
-                                        color: Colors.blueGrey.shade600,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                // Ajout d'une icône ou d'un détail visuel subtil
-                                Icon(Icons.euro_symbol, size: 24, color: Colors.blueGrey.shade300),
-                              ],
-                            ),
-                            Divider(
-                              height: 32,
-                              color: Colors.blueGrey.shade100,
-                              thickness: 1,
-                            ),
-
-                            // Section Moyens de paiement
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Icon(Icons.payment_outlined, size: 20, color: Colors.blueGrey),
-                                        SizedBox(width: 8),
-                                        Text(
-                                          'Moyens de paiement',
-                                          style: TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.w700,
-                                            color: Colors.blueGrey.shade800,
-                                            fontFamily: 'Poppins',
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    SizedBox(height: 8),
-                                    Text(
-                                      event.acceptedPayments?.join(", ") ?? 'Non spécifié',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontFamily: 'Poppins',
-                                        color: Colors.blueGrey.shade600,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                Icon(Icons.credit_card, size: 24, color: Colors.blueGrey.shade300),
-                              ],
-                            ),
-                          ],
-                        ),
+// Section Tarifs et Moyens de paiement
+Container(
+  margin: const EdgeInsets.symmetric(vertical: 16.0),
+  padding: const EdgeInsets.all(20.0),
+  decoration: BoxDecoration(
+    gradient: LinearGradient(
+      colors: [Colors.white, Colors.grey.shade50], // Fond légèrement dégradé
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    ),
+    borderRadius: BorderRadius.circular(16),
+    border: Border.all(
+      color: Colors.grey.shade300, // Bordure subtile
+      width: 1.5,
+    ),
+    boxShadow: [
+      BoxShadow(
+        color: Colors.grey.withOpacity(0.2),
+        blurRadius: 15,
+        spreadRadius: 2,
+        offset: Offset(0, 8), // Ombre plus longue pour effet de profondeur
+      ),
+    ],
+  ),
+  child: Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      // Section Tarifs
+      Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // Utiliser Flexible au lieu de Expanded
+          Flexible(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.monetization_on_outlined, size: 20, color: Colors.blueGrey),
+                    SizedBox(width: 8),
+                    Text(
+                      'Tarif',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.blueGrey.shade800,
+                        fontFamily: 'Poppins',
                       ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 8),
+                Text(
+                  event.priceOptions != null ? formatPriceOptions(event.priceOptions!) : 'Non spécifié',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontFamily: 'Poppins',
+                    color: Colors.blueGrey.shade600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Icon(Icons.euro_symbol, size: 24, color: Colors.blueGrey.shade300),
+        ],
+      ),
+      Divider(
+        height: 32,
+        color: Colors.blueGrey.shade100,
+        thickness: 1,
+      ),
+
+      // Section Moyens de paiement
+      Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Flexible(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.payment_outlined, size: 20, color: Colors.blueGrey),
+                    SizedBox(width: 8),
+                    Text(
+                      'Moyens de paiement', // Correction ici !
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.blueGrey.shade800,
+                        fontFamily: 'Poppins',
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 8),
+                Text(
+                  event.acceptedPayments?.join(", ") ?? 'Non spécifié',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontFamily: 'Poppins',
+                    color: Colors.blueGrey.shade600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Icon(Icons.credit_card, size: 24, color: Colors.blueGrey.shade300),
+        ],
+      ),
+    ],
+  ),
+),
+
                       const SizedBox(height: 16),
                       
                     ],
@@ -564,11 +604,22 @@ class EventPage extends StatelessWidget {
   }
 
   // Méthode pour partager l'événement
-  void _shareEvent(POI event) {
-    final String shareText = 'Rejoignez-moi à l\'événement "${event.name}" le ${event.startDate} à ${event.location?.city}.\n'
-        'Plus d\'infos: ${event.description}';
-    
-    Share.share(shareText);
+void _shareEvent(BuildContext context, POI event) async {
+    try {
+      // Générer le lien dynamique
+          String dynamicLink = await _createDynamicLink(event);
+
+      // Construire le message à partager
+      String shareText = "J\'ai trouvé un événement sur Wazaa qui pourrait t'intéresser : ${event.name} 😍\n\nClique sur le lien pour le découvrir : $dynamicLink";
+
+      // Partager le message
+      Share.share(shareText);
+    } catch (e) {
+      print('Erreur lors de la création du lien dynamique : $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Erreur lors de la création du lien de partage.')),
+      );
+    }
   }
 
   // Function to show the full image in a dialog
@@ -628,6 +679,35 @@ class EventPage extends StatelessWidget {
         );
       },
     );
+  }
+
+  // Fonction pour créer un lien dynamique
+  Future<String> _createDynamicLink(POI event) async {
+    final DynamicLinkParameters parameters = DynamicLinkParameters(
+      uriPrefix: 'https://links.wazaa.app',
+      link: Uri.parse('https://wazaa.app/event?id=$eventId'),
+      androidParameters: const AndroidParameters(
+        packageName: 'com.wazaa.app',
+        minimumVersion: 0,
+      ),
+      iosParameters: const IOSParameters(
+        bundleId: 'com.wazaa.app',
+        appStoreId: 'YOUR_APP_STORE_ID', // Remplacez par l'App Store ID si disponible
+        minimumVersion: '0',
+      ),
+      socialMetaTagParameters: SocialMetaTagParameters(
+        title: event.name,
+        description: event.description ?? 'Découvrez cet événement sur Wazaa.',
+        imageUrl: event.photoUrl != null && event.photoUrl!.isNotEmpty
+            ? Uri.parse(event.photoUrl!)
+            : null,
+      ),
+    );
+
+    final ShortDynamicLink shortLink = await FirebaseDynamicLinks.instance.buildShortLink(parameters);
+    final Uri shortUrl = shortLink.shortUrl;
+
+    return shortUrl.toString();
   }
 }
 

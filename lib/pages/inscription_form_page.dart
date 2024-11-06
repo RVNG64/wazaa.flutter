@@ -346,7 +346,7 @@ class _InscriptionFormPageState extends State<InscriptionFormPage> {
           };
 
           // Déterminer l'endpoint en fonction du rôle
-          String endpoint = 'https://wazaapp-backend-e95231584d01.herokuapp.com/auth/signup';
+          String endpoint = 'http://10.0.2.2:3000/auth/signup';
 
           // Ajouter des champs spécifiques aux organisateurs
           if (widget.selectedRole == 'Organisateur') {
@@ -354,7 +354,7 @@ class _InscriptionFormPageState extends State<InscriptionFormPage> {
               'organizationName': _companyNameController.text,
             });
             // Changer l'endpoint pour les organisateurs
-            endpoint = 'https://wazaapp-backend-e95231584d01.herokuapp.com/auth/signup/organizer';
+            endpoint = 'http://10.0.2.2:3000/auth/signup/organizer';
           } else {
             // Ajouter le rôle pour les utilisateurs
             requestBody['role'] = 'user';

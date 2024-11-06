@@ -9,6 +9,7 @@ import 'providers/auth_provider.dart';
 import 'package:path_provider/path_provider.dart';
 import 'pages/splash_screen.dart';
 import 'services/event_notifier.dart';
+import 'services/dynamic_links_service.dart';
 import 'models/poi_adapter.dart'; 
 import 'models/poi_infos/location_adapter.dart';
 import 'models/poi_infos/price_options_adapter.dart';

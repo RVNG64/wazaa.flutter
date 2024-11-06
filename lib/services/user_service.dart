@@ -5,7 +5,7 @@ import 'dart:convert';
 import '../models/user.dart';
 
 class UserService {
-  final String baseUrl = 'https://wazaapp-backend-e95231584d01.herokuapp.com/auth'; // Assurez-vous que l'URL est correcte
+  final String baseUrl = 'http://10.0.2.2:3000/auth'; // Assurez-vous que l'URL est correcte
 
 
   Future<String?> getUserRole(String token) async {
