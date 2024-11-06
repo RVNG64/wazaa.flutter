@@ -822,7 +822,7 @@ class _AttendanceButtonsState extends State<AttendanceButtons>
   @override
   void initState() {
     super.initState();
-    _eventService = EventService('https://wazaapp-backend-e95231584d01.herokuapp.com');
+    _eventService = EventService('http://10.0.2.2:3000');
     _fetchAttendanceStatus();
 
     // Initialisation de l'animation de pulsation

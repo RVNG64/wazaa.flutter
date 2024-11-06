@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:share_plus/share_plus.dart'; // Pour le partage de lien
+import 'package:share_plus/share_plus.dart';
+import 'package:firebase_dynamic_links/firebase_dynamic_links.dart';
 
 class InviteFriendsPage extends StatefulWidget {
   const InviteFriendsPage({Key? key}) : super(key: key);
@@ -11,7 +12,7 @@ class InviteFriendsPage extends StatefulWidget {
 class _InviteFriendsPageState extends State<InviteFriendsPage>
     with SingleTickerProviderStateMixin {
   String _invitationMessage =
-      "Je t'invite à rejoindre cette super application ! Télécharge-la ici : [Lien de l'application]";
+      "Je t'invite à rejoindre Wazaa ! \n\nPour ne plus rien rater des événements autour de toi 😍 \nTélécharge l'application ici : [Lien de l'application]";
 
   late AnimationController _controller;
   late Animation<double> _animation;
@@ -111,13 +112,50 @@ class _InviteFriendsPageState extends State<InviteFriendsPage>
     );
   }
 
-  // Partager l'invitation
-  Future<void> _shareInvitation() async {
-    Share.share(
-      _invitationMessage,
-      subject: 'Invitation à rejoindre WAZAA',
+  // Générer un Dynamic Link
+  Future<String> _createDynamicLink() async {
+    final DynamicLinkParameters parameters = DynamicLinkParameters(
+      uriPrefix: 'https://links.wazaa.app',
+      link: Uri.parse('https://wazaa.app/invite'),
+      androidParameters: const AndroidParameters(
+        packageName: 'com.wazaa.app', 
+        minimumVersion: 0,
+      ),
+      iosParameters: const IOSParameters(
+        bundleId: 'com.wazaa.app', // Remplacer par le bundle ID réel
+        appStoreId: 'YOUR_APP_STORE_ID', // Remplacer par l'App Store ID
+        minimumVersion: '0',
+      ),
+      socialMetaTagParameters: const SocialMetaTagParameters(
+        title: 'Rejoins-moi sur Wazaa !',
+        description: 'Je t\'invite à télécharger Wazaa pour ne plus rien rater des événements autour de toi 😍',
+      ),
     );
-    //_showConfirmationDialog();
+
+    final ShortDynamicLink shortLink = await FirebaseDynamicLinks.instance.buildShortLink(parameters);
+    final Uri shortUrl = shortLink.shortUrl;
+
+    return shortUrl.toString();
+  }
+
+  // Partager l'invitation avec le lien dynamique
+  Future<void> _shareInvitation() async {
+    try {
+      String dynamicLink = await _createDynamicLink();
+
+      String message = _invitationMessage.replaceFirst(
+          '[Lien de l\'application]', dynamicLink);
+
+      Share.share(
+        message,
+        subject: 'Invitation à rejoindre Wazaa',
+      );
+    } catch (e) {
+      print('Erreur lors de la création du lien dynamique: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Erreur lors de la création du lien de partage.')),
+      );
+    }
   }
 
   @override
@@ -187,7 +225,7 @@ class _InviteFriendsPageState extends State<InviteFriendsPage>
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 30.0),
                   child: Text(
-                    'Invitez vos amis à rejoindre WAZAA pour partager des événements ensemble !',
+                    'Invitez vos amis à rejoindre Wazaa pour partager des événements ensemble !',
                     style: TextStyle(
                       color: Colors.white,
                       fontFamily: 'Poppins',
@@ -243,7 +281,7 @@ class _InviteFriendsPageState extends State<InviteFriendsPage>
                         ),
                         onPressed: _shareInvitation,
                         child: const Text(
-                          'Partager WAZAA',
+                          'Partager Wazaa',
                           style: TextStyle(
                             fontFamily: 'Poppins',
                             fontSize: 20,

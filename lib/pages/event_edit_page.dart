@@ -23,7 +23,7 @@ class EventEditPage extends StatefulWidget {
 
 class _EventEditPageState extends State<EventEditPage> {
   final _formKey = GlobalKey<FormState>();
-  final EventService _eventService = EventService('https://wazaapp-backend-e95231584d01.herokuapp.com');
+  final EventService _eventService = EventService('http://10.0.2.2:3000');
   final String _googleMapsApiKey = dotenv.env['GOOGLE_MAPS_API_KEY']!;
 
   // Contrôleurs pour les champs

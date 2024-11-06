@@ -769,7 +769,7 @@ class EventFormPart2 extends StatefulWidget {
 
 class _EventFormPart2State extends State<EventFormPart2> {
   final _formKey = GlobalKey<FormState>();
-  final EventService _eventService = EventService('https://wazaapp-backend-e95231584d01.herokuapp.com');
+  final EventService _eventService = EventService('http://10.0.2.2:3000');
   List<String> _selectedPaymentMethods = [];
 
   // Contrôleurs pour les champs de la Partie 2
@@ -1101,7 +1101,7 @@ class EventFormPart3 extends StatefulWidget {
 
 class _EventFormPart3State extends State<EventFormPart3> {
   final _formKey = GlobalKey<FormState>();
-  final EventService _eventService = EventService('https://wazaapp-backend-e95231584d01.herokuapp.com');
+  final EventService _eventService = EventService('http://10.0.2.2:3000');
   final List<String> _socialMediaOptions = ['Facebook', 'Instagram', 'Twitter', 'YouTube', 'TikTok'];
   Map<String, TextEditingController> _socialMediaControllers = {};
   Map<String, bool> _selectedSocialMedia = {};
